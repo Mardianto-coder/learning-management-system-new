@@ -1,12 +1,20 @@
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import type { PublicUser, User, UserRole } from './types';
 
+function readEnv(name: string): string {
+  return String(process.env[name] ?? '').trim();
+}
+
+export function isJwtConfigured(): boolean {
+  const secret = readEnv('JWT_SECRET');
+  return Boolean(secret) && !secret.startsWith('your-strong-secret') && secret !== 'ganti-dengan-secret-acak';
+}
+
 function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
+  if (!isJwtConfigured()) {
     throw new Error('JWT_SECRET is not configured');
   }
-  return secret;
+  return readEnv('JWT_SECRET');
 }
 
 export function generateToken(user: User | PublicUser): string {

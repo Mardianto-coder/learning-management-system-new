@@ -1,4 +1,4 @@
-import { generateToken, toPublicUser } from '@/lib/auth';
+import { generateToken, isJwtConfigured, toPublicUser } from '@/lib/auth';
 import { json } from '@/lib/http';
 import { hashPassword } from '@/lib/password';
 import { withStore } from '@/lib/storage';
@@ -8,6 +8,7 @@ import { isEmail, isRole, sanitizeText, validatePasswordFormat } from '@/lib/val
 import type { User, UserRole } from '@/lib/types';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
@@ -29,6 +30,10 @@ export async function POST(request: Request) {
     if (!isRole(role)) return json({ message: 'Role must be either student or admin' }, 400);
     const pw = validatePasswordFormat(password);
     if (!pw.valid) return json({ message: pw.message }, 400);
+
+    if (!isJwtConfigured()) {
+      return json({ message: 'JWT_SECRET is not configured' }, 500);
+    }
 
     if (isSupabaseEnabled()) {
       try {
