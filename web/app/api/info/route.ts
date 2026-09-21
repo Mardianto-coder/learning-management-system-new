@@ -12,5 +12,6 @@ export async function GET() {
     addresses: getLanAddresses(),
     supabase: isSupabaseEnabled(),
     jwt: isJwtConfigured(),
+    jwtDedicated: Boolean(String(process.env.JWT_SECRET ?? '').trim()),
   });
 }

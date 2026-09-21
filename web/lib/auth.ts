@@ -5,15 +5,23 @@ function readEnv(name: string): string {
   return String(process.env[name] ?? '').trim();
 }
 
+/** Vercel kadang tidak mengirim JWT_SECRET; pakai service role sebagai cadangan di server. */
+function jwtSecretValue(): string {
+  const dedicated = String(process.env.JWT_SECRET ?? '').trim();
+  if (dedicated) return dedicated;
+  return String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
+}
+
 export function isJwtConfigured(): boolean {
-  return Boolean(readEnv('JWT_SECRET'));
+  return Boolean(jwtSecretValue());
 }
 
 function getJwtSecret(): string {
-  if (!isJwtConfigured()) {
+  const secret = jwtSecretValue();
+  if (!secret) {
     throw new Error('JWT_SECRET is not configured');
   }
-  return readEnv('JWT_SECRET');
+  return secret;
 }
 
 export function generateToken(user: User | PublicUser): string {
