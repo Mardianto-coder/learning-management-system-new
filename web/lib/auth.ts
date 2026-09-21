@@ -6,8 +6,7 @@ function readEnv(name: string): string {
 }
 
 export function isJwtConfigured(): boolean {
-  const secret = readEnv('JWT_SECRET');
-  return Boolean(secret) && !secret.startsWith('your-strong-secret') && secret !== 'ganti-dengan-secret-acak';
+  return Boolean(readEnv('JWT_SECRET'));
 }
 
 function getJwtSecret(): string {
