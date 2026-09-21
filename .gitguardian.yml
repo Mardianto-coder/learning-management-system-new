@@ -1,0 +1,20 @@
+# GitGuardian Configuration
+# File ini mengkonfigurasi GitGuardian untuk mengabaikan false positive di file test
+
+# Paths yang di-ignore untuk scan
+paths-ignore:
+  # File test yang menggunakan test-only passwords
+  - "spec/**/*.spec.ts"
+  - "**/*.spec.ts"
+  - "**/*.test.ts"
+
+# Pola yang di-ignore (optional)
+# Jika masih terdeteksi, bisa tambahkan pattern khusus
+# patterns:
+#   - "TEST_.*"  # Ignore semua string yang dimulai dengan TEST_
+
+# Catatan:
+# - File test menggunakan password dengan prefix TEST_ yang jelas menunjukkan test-only values
+# - Semua password di file test sudah ditandai dengan komentar TEST-ONLY
+# - Password ini tidak digunakan di production dan hanya untuk keperluan testing
+

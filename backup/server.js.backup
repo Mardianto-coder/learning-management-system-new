@@ -1,0 +1,358 @@
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname)));
+
+// In-memory database (replace with real database in production)
+let users = [];
+let courses = [
+    {
+        id: 1,
+        title: 'Introduction to Web Development',
+        description: 'Learn the fundamentals of HTML, CSS, and JavaScript to build modern web applications.',
+        category: 'programming',
+        duration: 40,
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 2,
+        title: 'UI/UX Design Principles',
+        description: 'Master the art of creating beautiful and user-friendly interfaces.',
+        category: 'design',
+        duration: 30,
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 3,
+        title: 'Business Management Fundamentals',
+        description: 'Essential skills for managing teams and projects effectively.',
+        category: 'business',
+        duration: 35,
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 4,
+        title: 'English for Professionals',
+        description: 'Improve your English communication skills for the workplace.',
+        category: 'language',
+        duration: 50,
+        createdAt: new Date().toISOString()
+    }
+];
+let enrollments = []; // { studentId, courseId, enrolledAt }
+let assignments = []; // { id, studentId, courseId, title, content, status, submittedAt }
+
+let nextUserId = 1;
+let nextCourseId = 5;
+let nextAssignmentId = 1;
+
+// Helper function to authenticate user
+function authenticateUser(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    const userId = parseInt(authHeader.replace('Bearer ', ''));
+    const user = users.find(u => u.id === userId);
+    
+    if (!user) {
+        return res.status(401).json({ message: 'Invalid authentication' });
+    }
+    
+    req.user = user;
+    next();
+}
+
+// Helper function to check admin role
+function requireAdmin(req, res, next) {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin access required' });
+    }
+    next();
+}
+
+// Routes
+
+// Serve index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Authentication Routes
+app.post('/api/auth/register', (req, res) => {
+    const { name, email, password, role } = req.body;
+    
+    if (!name || !email || !password || !role) {
+        return res.status(400).json({ message: 'All fields are required' });
+    }
+    
+    if (users.find(u => u.email === email)) {
+        return res.status(400).json({ message: 'Email already registered' });
+    }
+    
+    if (!['student', 'admin'].includes(role)) {
+        return res.status(400).json({ message: 'Invalid role' });
+    }
+    
+    const newUser = {
+        id: nextUserId++,
+        name,
+        email,
+        password, // In production, hash the password
+        role,
+        createdAt: new Date().toISOString()
+    };
+    
+    users.push(newUser);
+    
+    res.status(201).json({
+        message: 'User registered successfully',
+        user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role }
+    });
+});
+
+app.post('/api/auth/login', (req, res) => {
+    const { email, password, role } = req.body;
+    
+    const user = users.find(u => u.email === email && u.password === password);
+    
+    if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    
+    if (user.role !== role) {
+        return res.status(401).json({ message: 'Role mismatch' });
+    }
+    
+    res.json({
+        message: 'Login successful',
+        user: { id: user.id, name: user.name, email: user.email, role: user.role }
+    });
+});
+
+// Course Routes
+app.get('/api/courses', (req, res) => {
+    res.json({ courses });
+});
+
+app.get('/api/courses/:id', (req, res) => {
+    const course = courses.find(c => c.id === parseInt(req.params.id));
+    if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+    }
+    res.json({ course });
+});
+
+app.post('/api/courses', authenticateUser, requireAdmin, (req, res) => {
+    const { title, description, category, duration } = req.body;
+    
+    if (!title || !description || !category || !duration) {
+        return res.status(400).json({ message: 'All fields are required' });
+    }
+    
+    const newCourse = {
+        id: nextCourseId++,
+        title,
+        description,
+        category,
+        duration: parseInt(duration),
+        createdAt: new Date().toISOString()
+    };
+    
+    courses.push(newCourse);
+    res.status(201).json({ message: 'Course created successfully', course: newCourse });
+});
+
+app.put('/api/courses/:id', authenticateUser, requireAdmin, (req, res) => {
+    const courseId = parseInt(req.params.id);
+    const courseIndex = courses.findIndex(c => c.id === courseId);
+    
+    if (courseIndex === -1) {
+        return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    const { title, description, category, duration } = req.body;
+    courses[courseIndex] = {
+        ...courses[courseIndex],
+        title: title || courses[courseIndex].title,
+        description: description || courses[courseIndex].description,
+        category: category || courses[courseIndex].category,
+        duration: duration ? parseInt(duration) : courses[courseIndex].duration
+    };
+    
+    res.json({ message: 'Course updated successfully', course: courses[courseIndex] });
+});
+
+app.delete('/api/courses/:id', authenticateUser, requireAdmin, (req, res) => {
+    const courseId = parseInt(req.params.id);
+    const courseIndex = courses.findIndex(c => c.id === courseId);
+    
+    if (courseIndex === -1) {
+        return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    courses.splice(courseIndex, 1);
+    // Also remove enrollments and assignments for this course
+    enrollments = enrollments.filter(e => e.courseId !== courseId);
+    assignments = assignments.filter(a => a.courseId !== courseId);
+    
+    res.json({ message: 'Course deleted successfully' });
+});
+
+// Enrollment Routes
+app.post('/api/courses/:id/enroll', authenticateUser, (req, res) => {
+    if (req.user.role !== 'student') {
+        return res.status(403).json({ message: 'Only students can enroll' });
+    }
+    
+    const courseId = parseInt(req.params.id);
+    const course = courses.find(c => c.id === courseId);
+    
+    if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    const existingEnrollment = enrollments.find(
+        e => e.studentId === req.user.id && e.courseId === courseId
+    );
+    
+    if (existingEnrollment) {
+        return res.status(400).json({ message: 'Already enrolled in this course' });
+    }
+    
+    enrollments.push({
+        studentId: req.user.id,
+        courseId,
+        enrolledAt: new Date().toISOString()
+    });
+    
+    res.json({ message: 'Enrolled successfully' });
+});
+
+// Student Routes
+app.get('/api/students/:id/courses', authenticateUser, (req, res) => {
+    if (req.user.id !== parseInt(req.params.id) && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    const studentEnrollments = enrollments.filter(e => e.studentId === parseInt(req.params.id));
+    const studentCourses = studentEnrollments.map(enrollment => {
+        const course = courses.find(c => c.id === enrollment.courseId);
+        return course;
+    }).filter(c => c !== undefined);
+    
+    res.json({ courses: studentCourses });
+});
+
+app.get('/api/students/:id/assignments', authenticateUser, (req, res) => {
+    if (req.user.id !== parseInt(req.params.id) && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    const studentAssignments = assignments
+        .filter(a => a.studentId === parseInt(req.params.id))
+        .map(assignment => {
+            const course = courses.find(c => c.id === assignment.courseId);
+            return {
+                ...assignment,
+                courseTitle: course ? course.title : 'Unknown Course'
+            };
+        });
+    
+    res.json({ assignments: studentAssignments });
+});
+
+// Assignment Routes
+app.post('/api/assignments', authenticateUser, (req, res) => {
+    if (req.user.role !== 'student') {
+        return res.status(403).json({ message: 'Only students can submit assignments' });
+    }
+    
+    const { courseId, title, content } = req.body;
+    
+    if (!courseId || !title || !content) {
+        return res.status(400).json({ message: 'All fields are required' });
+    }
+    
+    // Check if student is enrolled
+    const enrollment = enrollments.find(
+        e => e.studentId === req.user.id && e.courseId === courseId
+    );
+    
+    if (!enrollment) {
+        return res.status(400).json({ message: 'You must be enrolled in this course' });
+    }
+    
+    const newAssignment = {
+        id: nextAssignmentId++,
+        studentId: req.user.id,
+        courseId: parseInt(courseId),
+        title,
+        content,
+        status: 'submitted',
+        submittedAt: new Date().toISOString()
+    };
+    
+    assignments.push(newAssignment);
+    res.status(201).json({ message: 'Assignment submitted successfully', assignment: newAssignment });
+});
+
+app.put('/api/assignments/:id', authenticateUser, (req, res) => {
+    const assignmentId = parseInt(req.params.id);
+    const assignmentIndex = assignments.findIndex(a => a.id === assignmentId);
+    
+    if (assignmentIndex === -1) {
+        return res.status(404).json({ message: 'Assignment not found' });
+    }
+    
+    const assignment = assignments[assignmentIndex];
+    
+    if (assignment.studentId !== req.user.id) {
+        return res.status(403).json({ message: 'You can only update your own assignments' });
+    }
+    
+    if (assignment.status === 'graded') {
+        return res.status(400).json({ message: 'Cannot update graded assignments' });
+    }
+    
+    const { title, content } = req.body;
+    assignments[assignmentIndex] = {
+        ...assignments[assignmentIndex],
+        title: title || assignments[assignmentIndex].title,
+        content: content || assignments[assignmentIndex].content,
+        status: 'submitted',
+        submittedAt: new Date().toISOString()
+    };
+    
+    res.json({ message: 'Assignment updated successfully', assignment: assignments[assignmentIndex] });
+});
+
+app.get('/api/assignments/:id', authenticateUser, (req, res) => {
+    const assignment = assignments.find(a => a.id === parseInt(req.params.id));
+    
+    if (!assignment) {
+        return res.status(404).json({ message: 'Assignment not found' });
+    }
+    
+    if (assignment.studentId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    res.json({ assignment });
+});
+
+// Start server
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`API endpoints available at http://localhost:${PORT}/api`);
+});
+

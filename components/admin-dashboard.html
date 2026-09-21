@@ -1,0 +1,59 @@
+<!-- Admin Dashboard -->
+<div id="adminDashboard" class="page">
+    <div class="container">
+        <h1>Admin Dashboard</h1>
+        
+        <!-- Course Management -->
+        <section class="dashboard-section">
+            <div class="section-header">
+                <h2>Course Management</h2>
+                <button class="btn btn-primary" id="addCourseBtn">+ Add New Course</button>
+            </div>
+            <div id="adminCourses" class="courses-grid">
+                <!-- Admin courses will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Assignment Grading -->
+        <section class="dashboard-section">
+            <h2>Assignment Grading</h2>
+            <div id="gradingSection" class="grading-section">
+                <p style="color: #6b7280; text-align: center; padding: 2rem;">Loading assignments...</p>
+            </div>
+        </section>
+
+        <!-- Course Form Modal -->
+        <div id="courseModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="courseModalTitle">Add New Course</h2>
+                <form id="courseForm">
+                    <input type="hidden" id="courseId">
+                    <div class="form-group">
+                        <label>Course Title</label>
+                        <input type="text" id="courseTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="courseDescription" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="courseCategory" required>
+                            <option value="programming">Programming</option>
+                            <option value="design">Design</option>
+                            <option value="business">Business</option>
+                            <option value="language">Language</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Duration (hours)</label>
+                        <input type="number" id="courseDuration" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Course</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+

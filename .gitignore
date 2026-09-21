@@ -1,0 +1,16 @@
+node_modules/
+dist/
+web/node_modules/
+web/.next/
+web/out/
+.env
+web/.env
+web/.env.local
+.DS_Store
+*.log
+.vscode/
+.idea/
+*.js.map
+*.d.ts
+data/
+

@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Tester - LMS Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .input-group input,
+        .input-group select,
+        .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .input-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .success {
+            color: #28a745;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+        
+        .info {
+            color: #17a2b8;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .status.online {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status.offline {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 API Tester - LMS Platform</h1>
+        <p class="subtitle">Test semua endpoint API dengan mudah</p>
+        
+        <div style="margin-bottom: 20px;">
+            <strong>Server Status:</strong>
+            <span id="serverStatus" class="status offline">Checking...</span>
+        </div>
+        
+        <!-- Authentication Section -->
+        <div class="section">
+            <h2>🔐 Authentication</h2>
+            <div class="grid">
+                <div>
+                    <h3>Register</h3>
+                    <div class="input-group">
+                        <label>Name</label>
+                        <input type="text" id="regName" placeholder="John Doe">
+                    </div>
+                    <div class="input-group">
+                        <label>Email</label>
+                        <input type="email" id="regEmail" placeholder="john@example.com">
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="regPassword" placeholder="password123">
+                    </div>
+                    <div class="input-group">
+                        <label>Role</label>
+                        <select id="regRole">
+                            <option value="student">Student</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="testRegister()">Register</button>
+                </div>
+                
+                <div>
+                    <h3>Login</h3>
+                    <div class="input-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" placeholder="john@example.com">
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" placeholder="password123">
+                    </div>
+                    <div class="input-group">
+                        <label>Role</label>
+                        <select id="loginRole">
+                            <option value="student">Student</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="testLogin()">Login</button>
+                    <button class="btn btn-secondary" onclick="checkCurrentUser()">Check Current User</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Courses Section -->
+        <div class="section">
+            <h2>📚 Courses</h2>
+            <button class="btn" onclick="getAllCourses()">Get All Courses</button>
+            <button class="btn" onclick="getCourseById()">Get Course by ID</button>
+            <div style="display: inline-block; margin-left: 10px;">
+                <input type="number" id="courseId" placeholder="Course ID" style="width: 100px; padding: 8px;">
+            </div>
+        </div>
+        
+        <!-- Student Section -->
+        <div class="section">
+            <h2>👨‍🎓 Student Actions</h2>
+            <button class="btn" onclick="getMyCourses()">Get My Enrolled Courses</button>
+            <button class="btn" onclick="getMyAssignments()">Get My Assignments</button>
+            <button class="btn" onclick="enrollInCourse()">Enroll in Course</button>
+            <div style="display: inline-block; margin-left: 10px;">
+                <input type="number" id="enrollCourseId" placeholder="Course ID" style="width: 100px; padding: 8px;">
+            </div>
+        </div>
+        
+        <!-- Assignment Section -->
+        <div class="section">
+            <h2>📝 Assignments</h2>
+            <div class="input-group">
+                <label>Course ID</label>
+                <input type="number" id="assignCourseId" placeholder="1">
+            </div>
+            <div class="input-group">
+                <label>Assignment Title</label>
+                <input type="text" id="assignTitle" placeholder="Assignment 1">
+            </div>
+            <div class="input-group">
+                <label>Content</label>
+                <textarea id="assignContent" placeholder="Assignment content..."></textarea>
+            </div>
+            <button class="btn" onclick="submitAssignment()">Submit Assignment</button>
+        </div>
+        
+        <!-- Admin Section -->
+        <div class="section">
+            <h2>👨‍💼 Admin Actions</h2>
+            <div class="input-group">
+                <label>Title</label>
+                <input type="text" id="courseTitle" placeholder="Course Title">
+            </div>
+            <div class="input-group">
+                <label>Description</label>
+                <textarea id="courseDescription" placeholder="Course description..."></textarea>
+            </div>
+            <div class="input-group">
+                <label>Category</label>
+                <select id="courseCategory">
+                    <option value="programming">Programming</option>
+                    <option value="design">Design</option>
+                    <option value="business">Business</option>
+                    <option value="language">Language</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Duration (hours)</label>
+                <input type="number" id="courseDuration" placeholder="40">
+            </div>
+            <button class="btn" onclick="createCourse()">Create Course</button>
+            <button class="btn btn-secondary" onclick="updateCourse()">Update Course</button>
+            <button class="btn btn-danger" onclick="deleteCourse()">Delete Course</button>
+            <div style="display: inline-block; margin-left: 10px;">
+                <input type="number" id="adminCourseId" placeholder="Course ID" style="width: 100px; padding: 8px;">
+            </div>
+        </div>
+        
+        <!-- Result Section -->
+        <div class="section">
+            <h2>📊 Result</h2>
+            <button class="btn btn-secondary" onclick="clearResult()">Clear</button>
+            <div id="result" class="result">
+                <pre>Klik tombol di atas untuk test API...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        
+        // Check server status
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/courses`);
+                const statusEl = document.getElementById('serverStatus');
+                if (response.ok) {
+                    statusEl.textContent = 'Online';
+                    statusEl.className = 'status online';
+                } else {
+                    statusEl.textContent = 'Error';
+                    statusEl.className = 'status offline';
+                }
+            } catch (error) {
+                const statusEl = document.getElementById('serverStatus');
+                statusEl.textContent = 'Offline';
+                statusEl.className = 'status offline';
+            }
+        }
+        
+        // Check status on load
+        checkServerStatus();
+        setInterval(checkServerStatus, 5000);
+        
+        function log(message, type = 'info') {
+            const resultEl = document.getElementById('result');
+            const pre = document.createElement('pre');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            pre.className = className;
+            pre.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultEl.appendChild(pre);
+            resultEl.scrollTop = resultEl.scrollHeight;
+        }
+        
+        function clearResult() {
+            document.getElementById('result').innerHTML = '';
+        }
+        
+        function getCurrentUser() {
+            const userStr = localStorage.getItem('currentUser');
+            return userStr ? JSON.parse(userStr) : null;
+        }
+        
+        // Authentication
+        async function testRegister() {
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const role = document.getElementById('regRole').value;
+            
+            if (!name || !email || !password) {
+                log('❌ Semua field harus diisi!', 'error');
+                return;
+            }
+            
+            try {
+                log(`📤 Registering: ${email}...`, 'info');
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password, role })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Register berhasil! User ID: ${data.user.id}`, 'success');
+                    log(JSON.stringify(data, null, 2), 'success');
+                } else {
+                    log(`❌ Register gagal: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const role = document.getElementById('loginRole').value;
+            
+            if (!email || !password) {
+                log('❌ Email dan password harus diisi!', 'error');
+                return;
+            }
+            
+            try {
+                log(`📤 Logging in: ${email}...`, 'info');
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, role })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('currentUser', JSON.stringify(data.user));
+                    log(`✅ Login berhasil! User ID: ${data.user.id}`, 'success');
+                    log(JSON.stringify(data, null, 2), 'success');
+                } else {
+                    log(`❌ Login gagal: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function checkCurrentUser() {
+            const user = getCurrentUser();
+            if (user) {
+                log(`👤 Current User:`, 'info');
+                log(JSON.stringify(user, null, 2), 'success');
+            } else {
+                log('⚠️ Tidak ada user yang login', 'error');
+            }
+        }
+        
+        // Courses
+        async function getAllCourses() {
+            try {
+                log('📚 Getting all courses...', 'info');
+                const response = await fetch(`${API_BASE}/courses`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Berhasil! Total: ${data.courses.length} courses`, 'success');
+                    log(JSON.stringify(data, null, 2), 'success');
+                } else {
+                    log(`❌ Error: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getCourseById() {
+            const courseId = document.getElementById('courseId').value;
+            if (!courseId) {
+                log('❌ Masukkan Course ID!', 'error');
+                return;
+            }
+            
+            try {
+                log(`📖 Getting course ID: ${courseId}...`, 'info');
+                const response = await fetch(`${API_BASE}/courses/${courseId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Berhasil!', 'success');
+                    log(JSON.stringify(data, null, 2), 'success');
+                } else {
+                    log(`❌ Error: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Student
+        async function getMyCourses() {
+            const user = getCurrentUser();
+            if (!user) {
+                log('❌ Silakan login terlebih dahulu!', 'error');
+                return;
+            }
+            
+            try {
+                log(`📚 Getting enrolled courses for user ${user.id}...`, 'info');
+                const response = await fetch(`${API_BASE}/students/${user.id}/courses`, {
+                    headers: { 'Authorization': `Bearer ${user.id}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Berhasil! Total: ${data.courses.length} courses`, 'success');
+                    log(JSON.stringify(data, null, 2), 'success');
+                } else {
+                    log(`❌ Error: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getMyAssignments() {
+            const user = getCurrentUser();
+            if (!user) {
+                log('❌ Silakan login terlebih dahulu!', 'error');
+                return;
+            }
+            
+            try {
+                log(`📝 Getting assignments for user ${user.id}...`, 'info');
+                const response = await fetch(`${API_BASE}/students/${user.id}/assignments`, {
+                    headers: { 'Authorization': `Bearer ${user.id}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Berhasil! Total: ${data.assignments.length} assignments`, 'success');
+                    log(JSON.stringify(data, null, 2), 'success');
+                } else {
+                    log(`❌ Error: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function enrollInCourse() {
+            const user = getCurrentUser();
+            if (!user) {
+                log('❌ Silakan login terlebih dahulu!', 'error');
+                return;
+            }
+            
+            const courseId = document.getElementById('enrollCourseId').value;
+            if (!courseId) {
+                log('❌ Masukkan Course ID!', 'error');
+                return;
+            }
+            
+            try {
+                log(`🎓 Enrolling in course ${courseId}...`, 'info');
+                const response = await fetch(`${API_BASE}/courses/${courseId}/enroll`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.id}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Enroll berhasil! ${data.message}`, 'success');
+                } else {
+                    log(`❌ Enroll gagal: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Assignment
+        async function submitAssignment() {
+            const user = getCurrentUser();
+            if (!user) {
+                log('❌ Silakan login terlebih dahulu!', 'error');
+                return;
+            }
+            
+            const courseId = document.getElementById('assignCourseId').value;
+            const title = document.getElementById('assignTitle').value;
+            const content = document.getElementById('assignContent').value;
+            
+            if (!courseId || !title || !content) {
+                log('❌ Semua field harus diisi!', 'error');
+                return;
+            }
+            
+            try {
+                log(`📤 Submitting assignment...`, 'info');
+                const response = await fetch(`${API_BASE}/assignments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.id}`
+                    },
+                    body: JSON.stringify({
+                        courseId: parseInt(courseId),
+                        title: title,
+                        content: content,
+                        studentId: user.id
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Assignment submitted! ID: ${data.assignment.id}`, 'success');
+                    log(JSON.stringify(data, null, 2), 'success');
+                } else {
+                    log(`❌ Submission gagal: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Admin
+        async function createCourse() {
+            const user = getCurrentUser();
+            if (!user || user.role !== 'admin') {
+                log('❌ Hanya admin yang bisa create course!', 'error');
+                return;
+            }
+            
+            const title = document.getElementById('courseTitle').value;
+            const description = document.getElementById('courseDescription').value;
+            const category = document.getElementById('courseCategory').value;
+            const duration = document.getElementById('courseDuration').value;
+            
+            if (!title || !description || !duration) {
+                log('❌ Semua field harus diisi!', 'error');
+                return;
+            }
+            
+            try {
+                log(`➕ Creating course: ${title}...`, 'info');
+                const response = await fetch(`${API_BASE}/courses`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.id}`
+                    },
+                    body: JSON.stringify({ title, description, category, duration: parseInt(duration) })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Course created! ID: ${data.course.id}`, 'success');
+                    log(JSON.stringify(data, null, 2), 'success');
+                } else {
+                    log(`❌ Create gagal: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function updateCourse() {
+            const user = getCurrentUser();
+            if (!user || user.role !== 'admin') {
+                log('❌ Hanya admin yang bisa update course!', 'error');
+                return;
+            }
+            
+            const courseId = document.getElementById('adminCourseId').value;
+            if (!courseId) {
+                log('❌ Masukkan Course ID!', 'error');
+                return;
+            }
+            
+            const title = document.getElementById('courseTitle').value;
+            const description = document.getElementById('courseDescription').value;
+            const category = document.getElementById('courseCategory').value;
+            const duration = document.getElementById('courseDuration').value;
+            
+            try {
+                log(`✏️ Updating course ${courseId}...`, 'info');
+                const response = await fetch(`${API_BASE}/courses/${courseId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.id}`
+                    },
+                    body: JSON.stringify({ title, description, category, duration: parseInt(duration) })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Course updated!`, 'success');
+                    log(JSON.stringify(data, null, 2), 'success');
+                } else {
+                    log(`❌ Update gagal: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function deleteCourse() {
+            const user = getCurrentUser();
+            if (!user || user.role !== 'admin') {
+                log('❌ Hanya admin yang bisa delete course!', 'error');
+                return;
+            }
+            
+            const courseId = document.getElementById('adminCourseId').value;
+            if (!courseId) {
+                log('❌ Masukkan Course ID!', 'error');
+                return;
+            }
+            
+            if (!confirm(`Yakin ingin menghapus course ID ${courseId}?`)) {
+                return;
+            }
+            
+            try {
+                log(`🗑️ Deleting course ${courseId}...`, 'info');
+                const response = await fetch(`${API_BASE}/courses/${courseId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${user.id}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Course deleted! ${data.message}`, 'success');
+                } else {
+                    const data = await response.json();
+                    log(`❌ Delete gagal: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
+
