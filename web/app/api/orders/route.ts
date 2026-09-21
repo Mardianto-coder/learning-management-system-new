@@ -2,7 +2,7 @@ import { json, isResponse, requireUser } from '@/lib/http';
 import { withStore, withStoreRead } from '@/lib/storage';
 import { saveUpload } from '@/lib/uploads';
 import { coursePrice, isActiveEnrollment, isPaidCourse } from '@/lib/types';
-import type { Order } from '@/lib/types';
+import type { FileAttachment, Order, OrderItem } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
@@ -47,13 +47,13 @@ export async function POST(request: Request) {
     if (!courseIds.length) return json({ message: 'Keranjang kosong' }, 400);
     if (!senderBank) return json({ message: 'Pilih bank asal pembayaran siswa' }, 400);
 
-    let proof;
+    let proof: FileAttachment | undefined;
     if (proofFile instanceof File && proofFile.size > 0) {
       proof = await saveUpload('payments', proofFile);
     }
 
     return withStore(async (store) => {
-      const items = [];
+      const items: OrderItem[] = [];
       for (const courseId of courseIds) {
         const course = store.courses.find((c) => c.id === courseId);
         if (!course) return json({ message: `Course ${courseId} not found` }, 404);
