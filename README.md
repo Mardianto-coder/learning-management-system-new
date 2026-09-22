@@ -13,6 +13,8 @@ Folder di laptop:
 E:\LMS platfrom paling baru\LMS-Platfrom-main
 ```
 
+Cara pakai harian ada di bawah. Urutan kerja dari awal sampai Vercel ada di **[PANDUAN.md](PANDUAN.md)**.
+
 ---
 
 ## Isi panduan
@@ -317,4 +319,4 @@ Hentikan server sebelum `npm install`. `npm audit fix` tidak wajib. Jangan `--fo
 
 - Tutup browser ≠ stop server.
 - Jangan commit `.env`, `web/.env.local`, atau `data/`.
-- Satu-satunya panduan proyek ini adalah file **README.md** ini.
+- Satu-satunya cara pakai harian: **README.md**. Riwayat kerja lengkap: **PANDUAN.md**.
