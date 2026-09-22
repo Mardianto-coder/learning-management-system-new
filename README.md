@@ -317,4 +317,4 @@ Hentikan server sebelum `npm install`. `npm audit fix` tidak wajib. Jangan `--fo
 
 - Tutup browser ≠ stop server.
 - Jangan commit `.env`, `web/.env.local`, atau `data/`.
-- Panduan yang berlaku untuk aplikasi sekarang adalah **file ini**. Dokumen `.md` lama di root merujuk Express.
+- Satu-satunya panduan proyek ini adalah file **README.md** ini.
