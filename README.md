@@ -10,8 +10,9 @@ Aplikasi yang **sekarang dipakai** ada di folder `web/`. Teknologi utamanya:
 - **Redux Toolkit**
 - **HTML + CSS**
 - **Supabase** (opsional — database, login, dan file; jika belum diisi, data memakai file JSON)
+- **Vercel** (hosting online; bukan folder di repo — dikonfigurasi di dashboard Vercel)
 
-Bisa dibuka dari **laptop** dan **HP** di Wi‑Fi yang sama.
+Bisa dibuka dari **laptop** dan **HP** di Wi‑Fi yang sama, atau lewat URL Vercel di internet.
 
 Lokasi proyek di komputer:
 
@@ -35,7 +36,8 @@ LMS-Platfrom-main/
 │   ├── components/           Navbar, modal, keranjang, bukti bayar
 │   ├── store/                Redux (auth, courses, cart)
 │   ├── lib/                  Storage, upload, Supabase, validasi
-│   ├── .env.example          Contoh kunci Supabase
+│   ├── .env.example          Contoh kunci (JWT + Supabase)
+│   ├── vercel.json           Memberitahu Vercel ini proyek Next.js
 │   └── package.json
 ├── data/                     Data JSON + unggahan (jika Supabase belum aktif)
 ├── supabase/schema.sql       SQL yang dijalankan di Supabase
@@ -66,6 +68,7 @@ http://localhost:3000/api/info
 
 - `"supabase": false` → masih memakai folder `data/`
 - `"supabase": true` → sudah terhubung ke Supabase
+- `"jwt": true` → token login siap (di Vercel boleh `"jwtDedicated": false`)
 
 ---
 
@@ -292,6 +295,65 @@ Cek [http://localhost:3000/api/info](http://localhost:3000/api/info) → `"supab
 3. **Table Editor → profiles** ada nama dan role.
 
 Jika `"supabase": false`: `.env.local` belum diisi atau server belum di-restart.
+
+---
+
+## Menghubungkan ke Vercel (online)
+
+Vercel **tidak** punya file seperti `schema.sql`. Yang di GitHub hanya kode + `web/vercel.json`. Kunci dan pengaturan ada di **dashboard Vercel**.
+
+Repo GitHub yang dipakai:
+
+https://github.com/Mardianto-coder/learning-management-system-new
+
+### 1. Buat project
+
+1. Buka [https://vercel.com](https://vercel.com) → masuk dengan GitHub.
+2. **Add New → Project** → import repo di atas.
+3. **Framework Preset:** Next.js (kadang terkunci otomatis setelah Root dipilih).
+4. **Root Directory:** klik **Edit** → pilih folder **`web`** (ada logo N). Jangan `/` dan jangan `supabase`.
+5. **Output Directory:** jangan diisi `public`. Biarkan default Next.js (Override mati).
+
+### 2. Environment Variables
+
+File `web/.env.local` **tidak** ikut ke GitHub. Salin kuncinya ke Vercel → **Settings → Environment Variables**.
+
+| Key | Jenis di Vercel | Keterangan |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | **Config** (bukan Secret) | `https://xxxx.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Config** | kunci anon (`eyJ...`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | kunci service_role |
+| `JWT_SECRET` | **Secret** | secret acak; isi dari `web/.env.local` |
+| `JWT_EXPIRES_IN` | Config atau Secret | `24h` |
+
+Nama yang diawali `NEXT_PUBLIC_` **wajib Config**. Kalau dipilih Secret, Vercel menolak simpan.
+
+Centang **Production** (boleh juga Preview). Setelah menambah/mengubah env: **Deployments → ⋯ → Redeploy** (jangan centang build cache). Push kode baru ke `main` biasanya deploy otomatis; Redeploy manual hanya perlu jika yang berubah hanya env.
+
+### 3. Cek
+
+Setelah status **Ready**:
+
+```
+https://NAMA-PROJECT.vercel.app/api/info
+```
+
+Harus `"supabase": true` dan `"jwt": true`.
+
+Situs produksi: [https://learning-management-system-new-zeta.vercel.app](https://learning-management-system-new-zeta.vercel.app)
+
+Laptop (`localhost`) dan Vercel memakai **project Supabase yang sama**. Daftar di Vercel → user muncul di **Authentication → Users**.
+
+Jangan buka URL deploy lama (kode acak di tengah nama). Pakai URL **Visit** / domain `…-zeta.vercel.app`.
+
+### 4. Build gagal yang pernah terjadi
+
+| Pesan log | Perbaikan |
+|---|---|
+| `Variable 'proof' implicitly has type 'any'` | sudah diperbaiki di kode checkout |
+| `No Output Directory named "public"` | Root Directory = `web`, jangan Output `public`; ada `web/vercel.json` |
+| Register: `JWT_SECRET is not configured` | isi `JWT_SECRET` di Vercel lalu Redeploy. Jika `"jwtDedicated": false` tapi `"jwt": true`, login tetap jalan (cadangan kunci Supabase) |
+| `A user with this email has already been registered` | email itu sudah ada di Supabase → pakai **Login**, bukan Register |
 
 ---
 
