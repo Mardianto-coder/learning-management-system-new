@@ -32,7 +32,7 @@ npm run dev
 
 Tanpa isi Supabase, LMS tetap jalan memakai folder `data/` (JSON). Jangan minta atau tempel `service_role` / JWT asli di PR atau screenshot.
 
-Di editor, `.env` / `.env.local` disembunyikan dari daftar file supaya tidak ikut layar saat share.
+Di GitHub, `.env` / `.env.local` **tidak** ikut terunggah. Di editor laptop file itu tetap ada; buka dengan **Ctrl+P** lalu ketik `web/.env.local`, atau **File → Open File** ke path itu. Tutup tab tersebut sebelum share layar wawancara.
 
 ---
 
