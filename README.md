@@ -17,6 +17,25 @@ Cara pakai harian ada di bawah. Urutan kerja dari awal sampai Vercel ada di **[P
 
 ---
 
+## Untuk review / wawancara
+
+Kode di GitHub **sengaja tanpa kunci**. File `web/.env.local` dan `.env` hanya di laptop; Git mengabaikannya.
+
+Pewawancara cukup clone repo, lalu:
+
+```powershell
+copy web\.env.example web\.env.local
+npm install
+npm install --prefix web
+npm run dev
+```
+
+Tanpa isi Supabase, LMS tetap jalan memakai folder `data/` (JSON). Jangan minta atau tempel `service_role` / JWT asli di PR atau screenshot.
+
+Di editor, `.env` / `.env.local` disembunyikan dari daftar file supaya tidak ikut layar saat share.
+
+---
+
 ## Isi panduan
 
 1. [Teknologi](#teknologi)
