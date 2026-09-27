@@ -9,12 +9,14 @@ export default function FilePreview({ file }: { file?: FileAttachment }) {
   return (
     <div className="file-preview">
       {isVideo(file.mimeType) ? (
-        <video controls src={src} style={{ width: '100%', maxHeight: 320, borderRadius: 8 }} />
+        <video controls preload="metadata" src={src} />
       ) : isAudio(file.mimeType) ? (
-        <audio controls src={src} style={{ width: '100%' }} />
+        <audio controls src={src} />
       ) : isImage(file.mimeType) ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={file.originalName} style={{ maxWidth: '100%', borderRadius: 8 }} />
+        <a href={src} target="_blank" rel="noreferrer" className="media-link" title="Buka ukuran penuh">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt={file.originalName} />
+        </a>
       ) : (
         <a className="btn btn-outline" href={src} target="_blank" rel="noreferrer">
           Unduh {file.originalName}
