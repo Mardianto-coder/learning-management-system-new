@@ -1,12 +1,18 @@
 import type { Assignment, Course, CourseData, Order, PaymentSettings, PublicUser, UserRole } from './types';
 
 async function parseResponse<T>(response: Response): Promise<T> {
-  const data = await response.json().catch(() => ({}));
+  const raw = await response.text();
+  let data: unknown = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = {};
+  }
   if (!response.ok) {
     const message =
       (data as { message?: string }).message ||
       ((data as { errors?: { message: string }[] }).errors || []).map((e) => e.message).join(', ') ||
-      'Request failed';
+      `Gagal unggah (kode ${response.status}). Coba file lebih kecil dari 80 MB.`;
     throw new Error(message);
   }
   return data as T;

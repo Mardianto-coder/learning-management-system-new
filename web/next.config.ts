@@ -8,6 +8,11 @@ loadEnv({ path: path.join(__dirname, '.env.local') });
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, '..'),
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '80mb',
+    },
+  },
 };
 
 export default nextConfig;

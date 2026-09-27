@@ -25,6 +25,31 @@ const ALLOWED_ASSIGNMENT = new Set([
 
 const ALLOWED_PAYMENT = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
 
+const EXT_MIME: Record<string, string> = {
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.avi': 'video/x-msvideo',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+  '.pdf': 'application/pdf',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.zip': 'application/zip',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
+
+function resolvedType(file: File): string {
+  if (file.type && (ALLOWED_ASSIGNMENT.has(file.type) || ALLOWED_PAYMENT.has(file.type))) {
+    return file.type;
+  }
+  return EXT_MIME[path.extname(file.name).toLowerCase()] || file.type || '';
+}
+
 function extFor(mime: string, originalName: string): string {
   const fromName = path.extname(originalName).toLowerCase();
   if (fromName && fromName.length <= 8) return fromName;
@@ -47,8 +72,9 @@ export async function saveUpload(
   folder: 'assignments' | 'payments',
   file: File,
 ): Promise<FileAttachment> {
+  const mime = resolvedType(file);
   const allowed = folder === 'payments' ? ALLOWED_PAYMENT : ALLOWED_ASSIGNMENT;
-  if (!allowed.has(file.type)) {
+  if (!allowed.has(mime)) {
     throw new Error(
       folder === 'payments'
         ? 'Bukti bayar harus gambar (JPG/PNG/WEBP) atau PDF'
@@ -59,13 +85,13 @@ export async function saveUpload(
     throw new Error('Ukuran file maksimal 80 MB');
   }
 
-  const stored = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${extFor(file.type, file.name)}`;
+  const stored = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${extFor(mime, file.name)}`;
 
   if (isSupabaseEnabled()) {
     const db = getSupabaseAdmin();
     const buffer = Buffer.from(await file.arrayBuffer());
     const { error } = await db.storage.from(folder).upload(stored, buffer, {
-      contentType: file.type,
+      contentType: mime,
       upsert: false,
     });
     if (error) throw new Error(error.message);
@@ -73,7 +99,7 @@ export async function saveUpload(
     return {
       url: data.publicUrl,
       originalName: file.name,
-      mimeType: file.type,
+      mimeType: mime,
       size: file.size,
     };
   }
@@ -87,7 +113,7 @@ export async function saveUpload(
   return {
     url: `/api/files/${folder}/${stored}`,
     originalName: file.name,
-    mimeType: file.type,
+    mimeType: mime,
     size: file.size,
   };
 }
