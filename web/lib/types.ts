@@ -1,3 +1,5 @@
+import type { StudentProfile } from './student-profile';
+
 export type UserRole = 'student' | 'admin';
 export type CourseCategory = 'programming' | 'design' | 'business' | 'language';
 export type AssignmentStatus = 'pending' | 'submitted' | 'graded';
@@ -12,6 +14,7 @@ export interface User {
   role: UserRole;
   createdAt?: string;
   authId?: string;
+  profile?: StudentProfile;
 }
 
 export interface PublicUser {
@@ -19,6 +22,7 @@ export interface PublicUser {
   name: string;
   email: string;
   role: UserRole;
+  profile?: StudentProfile;
 }
 
 export interface Course {

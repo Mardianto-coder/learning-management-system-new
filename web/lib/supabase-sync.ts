@@ -37,6 +37,7 @@ export async function loadStoreFromSupabase(): Promise<Store> {
     role: row.role,
     createdAt: row.created_at,
     authId: row.auth_id || undefined,
+    profile: row.profile || undefined,
   }));
 
   const mappedCourses: Course[] = (courses.data || []).map((row) => ({
@@ -124,6 +125,7 @@ export async function saveStoreToSupabase(store: Store): Promise<void> {
     name: user.name,
     email: user.email,
     role: user.role,
+    profile: user.profile || {},
     created_at: user.createdAt || new Date().toISOString(),
   }));
   const { error: profileError } = await db.from('profiles').upsert(profileRows, { onConflict: 'id' });

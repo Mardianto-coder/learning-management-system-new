@@ -104,7 +104,7 @@ Cek stack: `web/package.json` harus berisi `next`, `react`, `@reduxjs/toolkit`, 
 2. Rekening **tujuan** (admin bisa ubah).
 3. Siswa pilih **bank asal**, unggah bukti, status menunggu aktivasi.
 4. Admin **aktifkan** atau **tolak**. Riwayat: **Dibayar dari: …**
-5. Tugas: teks + file (video, audio, PDF, gambar, Word, ZIP), maks **80 MB**.
+5. Tugas: teks + file (video, audio, PDF, gambar, Word, ZIP), maks **500 MB**.
 6. Dosen nilai 0–100; siswa bisa ubah tugas sebelum dinilai.
 
 Ini **bukan** Midtrans. Transfer manual.

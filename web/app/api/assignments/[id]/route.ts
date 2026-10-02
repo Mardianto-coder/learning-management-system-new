@@ -4,7 +4,7 @@ import { sanitizeText } from '@/lib/validate';
 import { saveUpload } from '@/lib/uploads';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 type Ctx = { params: Promise<{ id: string }> };
 

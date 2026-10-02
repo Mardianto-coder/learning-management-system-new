@@ -7,7 +7,8 @@ create table if not exists public.profiles (
   name text not null,
   email text unique not null,
   role text not null check (role in ('student', 'admin')),
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  profile jsonb default '{}'::jsonb
 );
 
 create table if not exists public.courses (
@@ -115,3 +116,5 @@ create policy "public read banks" on public.bank_accounts for select using (true
 
 create policy "public read assignment files" on storage.objects for select using (bucket_id in ('assignments', 'payments'));
 create policy "service upload files" on storage.objects for insert with check (bucket_id in ('assignments', 'payments'));
+
+alter table public.profiles add column if not exists profile jsonb default '{}'::jsonb;

@@ -199,7 +199,7 @@ Rekening tujuan diubah di panel admin. Riwayat menampilkan bank **asal** siswa.
 
 ### Tugas (termasuk video)
 
-Setelah kelas aktif, siswa bisa kirim teks dan/atau file: video (mp4/webm/mov), audio, PDF, gambar, Word, ZIP — maks **80 MB**. Dosen memutar/membuka file lalu nilai 0–100. Tugas bisa diubah selama belum dinilai.
+Setelah kelas aktif, siswa bisa kirim teks dan/atau file: video (mp4/webm/mov), audio, PDF, gambar, Word, ZIP — maks **500 MB**. Dosen memutar/membuka file lalu nilai 0–100. Tugas bisa diubah selama belum dinilai.
 
 ---
 
@@ -325,7 +325,7 @@ Hentikan server sebelum `npm install`. `npm audit fix` tidak wajib. Jangan `--fo
 | `localhost:3000` tidak buka | Belum `npm run dev`, atau port 3000 dipakai |
 | HP tidak buka | Wi‑Fi berbeda, firewall, atau IP salah |
 | Kelas berbayar tidak di dashboard | Belum bayar, atau admin belum aktifkan |
-| Upload video gagal | File > 80 MB atau tipe tidak didukung |
+| Upload video gagal | File di atas 500 MB, tipe tidak didukung, atau hosting (Vercel) menolak file besar |
 | Login gagal setelah Supabase | SQL belum di-run, Confirm email nyala, atau kunci salah |
 | Vercel: error folder `public` | Root Directory belum `web` |
 | Vercel: `JWT_SECRET is not configured` | Isi `JWT_SECRET` + Redeploy, atau pastikan `"jwt": true` |

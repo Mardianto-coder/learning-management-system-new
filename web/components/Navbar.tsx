@@ -20,6 +20,8 @@ export default function Navbar() {
     router.push('/');
   }
 
+  if (pathname.startsWith('/dashboard')) return null;
+
   return (
     <nav className="navbar">
       <div className="nav-container">

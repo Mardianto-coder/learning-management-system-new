@@ -1,4 +1,5 @@
 import type { Assignment, Course, CourseData, Order, PaymentSettings, PublicUser, UserRole } from './types';
+import type { StudentProfile } from './student-profile';
 
 async function parseResponse<T>(response: Response): Promise<T> {
   const raw = await response.text();
@@ -12,7 +13,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
     const message =
       (data as { message?: string }).message ||
       ((data as { errors?: { message: string }[] }).errors || []).map((e) => e.message).join(', ') ||
-      `Gagal unggah (kode ${response.status}). Coba file lebih kecil dari 80 MB.`;
+      `Gagal unggah (kode ${response.status}). Coba file lebih kecil dari 500 MB.`;
     throw new Error(message);
   }
   return data as T;
@@ -53,6 +54,16 @@ export async function resetPassword(email: string) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
+    }),
+  );
+}
+
+export async function changePassword(currentPassword: string, password: string) {
+  return parseResponse<{ message: string }>(
+    await fetch('/api/auth/change-password', {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({ currentPassword, password }),
     }),
   );
 }
@@ -203,4 +214,44 @@ export async function savePaymentInfo(payment: PaymentSettings) {
     }),
   );
   return data;
+}
+
+export async function getMyProfile() {
+  const data = await parseResponse<{ name: string; email: string; profile: StudentProfile }>(
+    await fetch('/api/profile', { headers: authHeaders() }),
+  );
+  return data;
+}
+
+export async function updateMyProfile(patch: Partial<StudentProfile>) {
+  return parseResponse<{ message: string; name: string; email: string; profile: StudentProfile }>(
+    await fetch('/api/profile', {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(patch),
+    }),
+  );
+}
+
+export async function getStudents() {
+  const data = await parseResponse<{
+    students: { id: number; name: string; email: string; profile: StudentProfile }[];
+  }>(await fetch('/api/students', { headers: authHeaders() }));
+  return data.students;
+}
+
+export async function updateStudentAcademic(
+  studentId: number,
+  payload: Partial<StudentProfile> & { name?: string },
+) {
+  return parseResponse<{
+    message: string;
+    student: { id: number; name: string; email: string; profile: StudentProfile };
+  }>(
+    await fetch(`/api/students/${studentId}/profile`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    }),
+  );
 }

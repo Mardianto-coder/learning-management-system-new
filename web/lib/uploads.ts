@@ -1,10 +1,13 @@
+import { createWriteStream } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
+import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 import type { FileAttachment } from './types';
 import { isSupabaseEnabled, getSupabaseAdmin } from './supabase';
 
 const UPLOAD_ROOT = path.join(process.cwd(), '..', 'data', 'uploads');
-const MAX_BYTES = 80 * 1024 * 1024;
+const MAX_BYTES = 500 * 1024 * 1024;
 
 const ALLOWED_ASSIGNMENT = new Set([
   'video/mp4',
@@ -82,15 +85,14 @@ export async function saveUpload(
     );
   }
   if (file.size <= 0 || file.size > MAX_BYTES) {
-    throw new Error('Ukuran file maksimal 80 MB');
+    throw new Error('Ukuran file maksimal 500 MB');
   }
 
   const stored = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${extFor(mime, file.name)}`;
 
   if (isSupabaseEnabled()) {
     const db = getSupabaseAdmin();
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const { error } = await db.storage.from(folder).upload(stored, buffer, {
+    const { error } = await db.storage.from(folder).upload(stored, file, {
       contentType: mime,
       upsert: false,
     });
@@ -107,8 +109,7 @@ export async function saveUpload(
   const dir = path.join(UPLOAD_ROOT, folder);
   await fs.mkdir(dir, { recursive: true });
   const dest = path.join(dir, stored);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await fs.writeFile(dest, buffer);
+  await pipeline(Readable.fromWeb(file.stream() as import('stream/web').ReadableStream), createWriteStream(dest));
 
   return {
     url: `/api/files/${folder}/${stored}`,

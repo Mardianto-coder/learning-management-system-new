@@ -51,8 +51,8 @@ export default function CoursesPage() {
   }
 
   function addPaid(courseId: number) {
-    if (!user) {
-      router.push('/login');
+    if (!user || user.role !== 'student') {
+      setNotice('Login sebagai siswa dulu untuk memasukkan kelas ke keranjang.');
       return;
     }
     const course = items.find((c) => c.id === courseId);
@@ -91,12 +91,18 @@ export default function CoursesPage() {
           {filtered.map((course) => {
             const paid = isPaidCourse(course);
             const inCart = cart.some((item) => item.courseId === course.id);
+            const isAdmin = user?.role === 'admin';
+            const isStudent = user?.role === 'student';
             return (
               <CourseCard
                 key={course.id}
                 course={course}
                 actions={
-                  paid ? (
+                  isAdmin ? (
+                    <p className="dash-muted">Kelas diatur di Admin Panel → Kelola kelas.</p>
+                  ) : paid && !isStudent ? (
+                    <p className="dash-muted">Login sebagai siswa untuk enroll.</p>
+                  ) : paid ? (
                     <button
                       type="button"
                       className="btn btn-primary"
