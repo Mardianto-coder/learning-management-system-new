@@ -128,7 +128,12 @@ export async function saveStoreToSupabase(store: Store): Promise<void> {
     profile: user.profile || {},
     created_at: user.createdAt || new Date().toISOString(),
   }));
-  const { error: profileError } = await db.from('profiles').upsert(profileRows, { onConflict: 'id' });
+  let { error: profileError } = await db.from('profiles').upsert(profileRows, { onConflict: 'id' });
+  if (profileError && /profiles\.profile|column .*profile/i.test(profileError.message)) {
+    const withoutProfile = profileRows.map(({ profile: _profile, ...row }) => row);
+    const retry = await db.from('profiles').upsert(withoutProfile, { onConflict: 'id' });
+    profileError = retry.error;
+  }
   throwIfError(profileError, 'Save profiles');
 
   const { error: courseError } = await db.from('courses').upsert(
