@@ -223,7 +223,18 @@ export async function getMyProfile() {
   return data;
 }
 
-export async function updateMyProfile(patch: Partial<StudentProfile>) {
+export async function updateMyProfile(patch: Partial<StudentProfile>, photo?: File | null) {
+  if (photo) {
+    const form = new FormData();
+    Object.entries(patch).forEach(([key, value]) => {
+      if (key === 'photoDataUrl') return;
+      if (value !== undefined && value !== null) form.append(key, String(value));
+    });
+    form.append('photo', photo);
+    return parseResponse<{ message: string; name: string; email: string; profile: StudentProfile }>(
+      await fetch('/api/profile', { method: 'PUT', headers: authHeaders(false), body: form }),
+    );
+  }
   return parseResponse<{ message: string; name: string; email: string; profile: StudentProfile }>(
     await fetch('/api/profile', {
       method: 'PUT',

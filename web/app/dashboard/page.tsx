@@ -29,6 +29,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
 import type { Assignment, Course, Order } from '@/lib/types';
+import { authMediaUrl } from '@/lib/format';
 
 type Panel =
   | 'home'
@@ -108,6 +109,8 @@ export default function StudentDashboardPage() {
   const [profile, setProfile] = useState<LocalStudentProfile | null>(null);
   const [logs, setLogs] = useState<LoginLogEntry[]>([]);
   const [pwBusy, setPwBusy] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState('');
 
   useEffect(() => {
     if (!ready) return;
@@ -170,18 +173,23 @@ export default function StudentDashboardPage() {
     setError('');
     setOk('');
     try {
-      const res = await updateMyProfile({
-        birthPlace: profile.birthPlace,
-        birthDate: profile.birthDate,
-        parentName: profile.parentName,
-        parentRelation: profile.parentRelation,
-        parentPhone: profile.parentPhone,
-        lastSchool: profile.lastSchool,
-        lastYear: profile.lastYear,
-        achievement: profile.achievement,
-        photoDataUrl: profile.photoDataUrl,
-      });
+      const res = await updateMyProfile(
+        {
+          birthPlace: profile.birthPlace,
+          birthDate: profile.birthDate,
+          parentName: profile.parentName,
+          parentRelation: profile.parentRelation,
+          parentPhone: profile.parentPhone,
+          lastSchool: profile.lastSchool,
+          lastYear: profile.lastYear,
+          achievement: profile.achievement,
+        },
+        photoFile,
+      );
       setProfile(res.profile);
+      setPhotoFile(null);
+      if (photoPreview.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
+      setPhotoPreview('');
       setOk(res.message);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal menyimpan profil');
@@ -189,18 +197,22 @@ export default function StudentDashboardPage() {
   }
 
   function onPhoto(file: File | null) {
-    if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const url = typeof reader.result === 'string' ? reader.result : '';
-      if (url.length > 1_200_000) {
-        setError('Foto terlalu besar. Pakai gambar lebih kecil.');
-        return;
-      }
-      patchProfile({ photoDataUrl: url });
-    };
-    reader.readAsDataURL(file);
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Foto harus gambar JPG, PNG, atau WEBP.');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setError('Ukuran foto maksimal 20 MB.');
+      return;
+    }
+    setError('');
+    setPhotoFile(file);
+    if (photoPreview.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
+    setPhotoPreview(URL.createObjectURL(file));
   }
+
+  const shownPhoto = photoPreview || (profile?.photoDataUrl ? authMediaUrl(profile.photoDataUrl) : '');
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -379,8 +391,8 @@ export default function StudentDashboardPage() {
               <section className="portal-card">
                 <h2>Data</h2>
                 <div className="portal-data-row">
-                  {profile.photoDataUrl ? (
-                    <img className="portal-avatar lg" src={profile.photoDataUrl} alt="" />
+                  {shownPhoto ? (
+                    <img className="portal-avatar lg" src={shownPhoto} alt="" />
                   ) : (
                     <div className="portal-avatar lg">{initials(user.name) || 'S'}</div>
                   )}
@@ -600,8 +612,8 @@ export default function StudentDashboardPage() {
                 </div>
                 <aside className="portal-photo">
                   <span>Foto:</span>
-                  {profile.photoDataUrl ? (
-                    <img src={profile.photoDataUrl} alt="Foto profil" />
+                  {shownPhoto ? (
+                    <img src={shownPhoto} alt="Foto profil" />
                   ) : (
                     <div className="portal-photo-ph">{initials(user.name) || 'S'}</div>
                   )}

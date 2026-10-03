@@ -114,7 +114,11 @@ create policy "public read courses" on public.courses for select using (true);
 create policy "public read payment" on public.payment_settings for select using (true);
 create policy "public read banks" on public.bank_accounts for select using (true);
 
-create policy "public read assignment files" on storage.objects for select using (bucket_id in ('assignments', 'payments'));
-create policy "service upload files" on storage.objects for insert with check (bucket_id in ('assignments', 'payments'));
+create policy "public read assignment files" on storage.objects for select using (bucket_id in ('assignments', 'payments', 'avatars'));
+create policy "service upload files" on storage.objects for insert with check (bucket_id in ('assignments', 'payments', 'avatars'));
+
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
 
 alter table public.profiles add column if not exists profile jsonb default '{}'::jsonb;

@@ -72,32 +72,52 @@ function extFor(mime: string, originalName: string): string {
 }
 
 export async function saveUpload(
-  folder: 'assignments' | 'payments',
+  folder: 'assignments' | 'payments' | 'avatars',
   file: File,
 ): Promise<FileAttachment> {
   const mime = resolvedType(file);
-  const allowed = folder === 'payments' ? ALLOWED_PAYMENT : ALLOWED_ASSIGNMENT;
-  if (!allowed.has(mime)) {
+  const allowed =
+    folder === 'avatars' ? ALLOWED_PAYMENT : folder === 'payments' ? ALLOWED_PAYMENT : ALLOWED_ASSIGNMENT;
+  if (!allowed.has(mime) || (folder === 'avatars' && !mime.startsWith('image/'))) {
     throw new Error(
-      folder === 'payments'
-        ? 'Bukti bayar harus gambar (JPG/PNG/WEBP) atau PDF'
-        : 'Tipe file tidak didukung. Unggah video, audio, PDF, gambar, Word, atau ZIP',
+      folder === 'avatars'
+        ? 'Foto harus gambar JPG, PNG, atau WEBP (maks 20 MB)'
+        : folder === 'payments'
+          ? 'Bukti bayar harus gambar (JPG/PNG/WEBP) atau PDF'
+          : 'Tipe file tidak didukung. Unggah video, audio, PDF, gambar, Word, atau ZIP',
     );
   }
-  if (file.size <= 0 || file.size > MAX_BYTES) {
-    throw new Error('Ukuran file maksimal 500 MB');
+  const maxBytes = folder === 'avatars' ? 20 * 1024 * 1024 : MAX_BYTES;
+  if (file.size <= 0 || file.size > maxBytes) {
+    throw new Error(folder === 'avatars' ? 'Ukuran foto maksimal 20 MB' : 'Ukuran file maksimal 500 MB');
   }
 
   const stored = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${extFor(mime, file.name)}`;
 
   if (isSupabaseEnabled()) {
     const db = getSupabaseAdmin();
-    const { error } = await db.storage.from(folder).upload(stored, file, {
+    const bucket = folder === 'avatars' ? 'avatars' : folder;
+    let uploaded = await db.storage.from(bucket).upload(stored, file, {
       contentType: mime,
       upsert: false,
     });
-    if (error) throw new Error(error.message);
-    const { data } = db.storage.from(folder).getPublicUrl(stored);
+    if (uploaded.error && folder === 'avatars') {
+      uploaded = await db.storage.from('payments').upload(`avatars/${stored}`, file, {
+        contentType: mime,
+        upsert: false,
+      });
+      if (!uploaded.error) {
+        const { data } = db.storage.from('payments').getPublicUrl(`avatars/${stored}`);
+        return {
+          url: data.publicUrl,
+          originalName: file.name,
+          mimeType: mime,
+          size: file.size,
+        };
+      }
+    }
+    if (uploaded.error) throw new Error(uploaded.error.message);
+    const { data } = db.storage.from(bucket).getPublicUrl(stored);
     return {
       url: data.publicUrl,
       originalName: file.name,
@@ -120,7 +140,7 @@ export async function saveUpload(
 }
 
 export function resolveUploadPath(folder: string, filename: string): string | null {
-  if (folder !== 'assignments' && folder !== 'payments') return null;
+  if (folder !== 'assignments' && folder !== 'payments' && folder !== 'avatars') return null;
   if (!/^[a-zA-Z0-9._-]+$/.test(filename)) return null;
   return path.join(UPLOAD_ROOT, folder, filename);
 }
