@@ -1,7 +1,7 @@
 'use client';
 
 import { Provider } from 'react-redux';
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { store } from '@/store';
 import { hydrateAuth } from '@/store/slices/authSlice';
 import { hydrateCart } from '@/store/slices/cartSlice';
@@ -9,7 +9,7 @@ import { useAppDispatch } from '@/store/hooks';
 
 function AuthHydrator() {
   const dispatch = useAppDispatch();
-  useEffect(() => {
+  useLayoutEffect(() => {
     dispatch(hydrateAuth());
     dispatch(hydrateCart());
   }, [dispatch]);

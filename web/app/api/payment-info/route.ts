@@ -6,7 +6,7 @@ import type { BankAccount, PaymentSettings } from '@/lib/types';
 export const runtime = 'nodejs';
 
 export async function GET() {
-  return withStoreRead((store) => json({ payment: store.payment }));
+  return withStoreRead((store) => json({ payment: store.payment }, 200, { 'Cache-Control': 'private, max-age=30' }));
 }
 
 export async function PUT(request: Request) {

@@ -136,19 +136,61 @@ export async function saveStoreToSupabase(store: Store): Promise<void> {
   }
   throwIfError(profileError, 'Save profiles');
 
-  const { error: courseError } = await db.from('courses').upsert(
-    store.courses.map((course) => ({
-      id: course.id,
-      title: course.title,
-      description: course.description,
-      category: course.category,
-      duration: course.duration,
-      price: course.price || 0,
-      created_at: course.createdAt || new Date().toISOString(),
-    })),
-    { onConflict: 'id' },
-  );
-  throwIfError(courseError, 'Save courses');
+  const [courseResult, assignmentResult, orderResult, settingResult] = await Promise.all([
+    db.from('courses').upsert(
+      store.courses.map((course) => ({
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        category: course.category,
+        duration: course.duration,
+        price: course.price || 0,
+        created_at: course.createdAt || new Date().toISOString(),
+      })),
+      { onConflict: 'id' },
+    ),
+    db.from('assignments').upsert(
+      store.assignments.map((item) => ({
+        id: item.id,
+        student_id: item.studentId,
+        course_id: item.courseId,
+        title: item.title,
+        content: item.content,
+        status: item.status,
+        attachment: item.attachment || null,
+        score: item.score ?? null,
+        feedback: item.feedback || null,
+        submitted_at: item.submittedAt,
+        graded_at: item.gradedAt || null,
+        graded_by: item.gradedBy ?? null,
+      })),
+      { onConflict: 'id' },
+    ),
+    db.from('orders').upsert(
+      store.orders.map((item) => ({
+        id: item.id,
+        student_id: item.studentId,
+        items: item.items,
+        total: item.total,
+        note: item.note,
+        sender_bank: item.senderBank || '',
+        proof: item.proof || null,
+        status: item.status,
+        created_at: item.createdAt,
+        activated_at: item.activatedAt || null,
+        activated_by: item.activatedBy ?? null,
+      })),
+      { onConflict: 'id' },
+    ),
+    db.from('payment_settings').upsert({
+      id: 1,
+      instruction: store.payment.instruction,
+    }),
+  ]);
+  throwIfError(courseResult.error, 'Save courses');
+  throwIfError(assignmentResult.error, 'Save assignments');
+  throwIfError(orderResult.error, 'Save orders');
+  throwIfError(settingResult.error, 'Save payment settings');
 
   await db.from('enrollments').delete().neq('student_id', -1);
   if (store.enrollments.length) {
@@ -162,49 +204,6 @@ export async function saveStoreToSupabase(store: Store): Promise<void> {
     );
     throwIfError(error, 'Save enrollments');
   }
-
-  const { error: assignmentError } = await db.from('assignments').upsert(
-    store.assignments.map((item) => ({
-      id: item.id,
-      student_id: item.studentId,
-      course_id: item.courseId,
-      title: item.title,
-      content: item.content,
-      status: item.status,
-      attachment: item.attachment || null,
-      score: item.score ?? null,
-      feedback: item.feedback || null,
-      submitted_at: item.submittedAt,
-      graded_at: item.gradedAt || null,
-      graded_by: item.gradedBy ?? null,
-    })),
-    { onConflict: 'id' },
-  );
-  throwIfError(assignmentError, 'Save assignments');
-
-  const { error: orderError } = await db.from('orders').upsert(
-    store.orders.map((item) => ({
-      id: item.id,
-      student_id: item.studentId,
-      items: item.items,
-      total: item.total,
-      note: item.note,
-      sender_bank: item.senderBank || '',
-      proof: item.proof || null,
-      status: item.status,
-      created_at: item.createdAt,
-      activated_at: item.activatedAt || null,
-      activated_by: item.activatedBy ?? null,
-    })),
-    { onConflict: 'id' },
-  );
-  throwIfError(orderError, 'Save orders');
-
-  const { error: settingError } = await db.from('payment_settings').upsert({
-    id: 1,
-    instruction: store.payment.instruction,
-  });
-  throwIfError(settingError, 'Save payment settings');
 
   await db.from('bank_accounts').delete().neq('id', -1);
   if (store.payment.accounts.length) {

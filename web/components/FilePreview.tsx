@@ -15,7 +15,7 @@ export default function FilePreview({ file }: { file?: FileAttachment }) {
       ) : isImage(file.mimeType) ? (
         <a href={src} target="_blank" rel="noreferrer" className="media-link" title="Buka ukuran penuh">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={file.originalName} />
+          <img src={src} alt={file.originalName} loading="lazy" decoding="async" />
         </a>
       ) : (
         <a className="btn btn-outline" href={src} target="_blank" rel="noreferrer">

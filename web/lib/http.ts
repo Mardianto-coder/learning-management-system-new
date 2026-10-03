@@ -1,8 +1,8 @@
 import { getBearerUser } from './auth';
 import type { PublicUser, UserRole } from './types';
 
-export function json(body: unknown, status = 200): Response {
-  return Response.json(body, { status });
+export function json(body: unknown, status = 200, headers?: HeadersInit): Response {
+  return Response.json(body, { status, headers });
 }
 
 export function requireUser(request: Request, role?: UserRole): PublicUser | Response {

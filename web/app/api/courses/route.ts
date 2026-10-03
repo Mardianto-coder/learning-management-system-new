@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 
 export async function GET() {
   const courses = await withStoreRead((store) => store.courses);
-  return json({ courses });
+  return json({ courses }, 200, { 'Cache-Control': 'private, max-age=20' });
 }
 
 export async function POST(request: Request) {

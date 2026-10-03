@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { getLanAddresses } from '@/lib/lan';
 
 export default function HomePage() {
-  const addresses = getLanAddresses();
+  const isVercel = Boolean(process.env.VERCEL);
+  const addresses = isVercel ? [] : getLanAddresses();
   const port = process.env.PORT || 3000;
 
   return (
@@ -14,6 +15,7 @@ export default function HomePage() {
           Explore Courses
         </Link>
       </section>
+      {isVercel ? null : (
       <aside className="lan-box">
         <strong>Akses dari laptop &amp; HP (jaringan Wi‑Fi yang sama)</strong>
         <p>Laptop: <code>http://localhost:{port}</code></p>
@@ -27,6 +29,7 @@ export default function HomePage() {
           <p>Jalankan `npm run dev` lalu buka IP LAN komputer ini dari browser HP.</p>
         )}
       </aside>
+      )}
     </main>
   );
 }

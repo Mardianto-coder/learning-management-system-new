@@ -96,6 +96,9 @@ async function writeJSONFile<T>(filePath: string, data: T): Promise<void> {
 }
 
 let queue: Promise<unknown> = Promise.resolve();
+let cached: { store: Store; at: number } | null = null;
+let inflight: Promise<Store> | null = null;
+const READ_TTL_MS = 8_000;
 
 function lock<T>(fn: () => Promise<T>): Promise<T> {
   const run = queue.then(fn, fn);
@@ -106,7 +109,32 @@ function lock<T>(fn: () => Promise<T>): Promise<T> {
   return run;
 }
 
-export async function loadStore(): Promise<Store> {
+function cloneStore(store: Store): Store {
+  return structuredClone(store);
+}
+
+function remember(store: Store): Store {
+  cached = { store: cloneStore(store), at: Date.now() };
+  return store;
+}
+
+export async function loadStore(force = false): Promise<Store> {
+  if (!force && cached && Date.now() - cached.at < READ_TTL_MS) {
+    return cloneStore(cached.store);
+  }
+  if (!force && inflight) {
+    return cloneStore(await inflight);
+  }
+  const run = (async () => remember(await loadStoreUncached()))();
+  inflight = run;
+  try {
+    return cloneStore(await run);
+  } finally {
+    if (inflight === run) inflight = null;
+  }
+}
+
+async function loadStoreUncached(): Promise<Store> {
   if (isSupabaseEnabled()) {
     return loadStoreFromSupabase();
   }
@@ -142,6 +170,7 @@ export async function loadStore(): Promise<Store> {
 export async function saveStore(store: Store): Promise<void> {
   if (isSupabaseEnabled()) {
     await saveStoreToSupabase(store);
+    remember(store);
     return;
   }
   await ensureDataDir();
@@ -154,11 +183,12 @@ export async function saveStore(store: Store): Promise<void> {
     writeJSONFile(PAYMENT_FILE, store.payment),
     writeJSONFile(COUNTERS_FILE, store.counters),
   ]);
+  remember(store);
 }
 
 export function withStore<T>(fn: (store: Store) => Promise<T>): Promise<T> {
   return lock(async () => {
-    const store = await loadStore();
+    const store = await loadStore(true);
     const result = await fn(store);
     await saveStore(store);
     return result;
@@ -166,5 +196,5 @@ export function withStore<T>(fn: (store: Store) => Promise<T>): Promise<T> {
 }
 
 export function withStoreRead<T>(fn: (store: Store) => Promise<T> | T): Promise<T> {
-  return lock(async () => fn(await loadStore()));
+  return Promise.resolve(loadStore()).then(fn);
 }
