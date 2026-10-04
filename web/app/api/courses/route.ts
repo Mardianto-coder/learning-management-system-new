@@ -1,13 +1,31 @@
 import { json, isResponse, requireUser } from '@/lib/http';
 import { withStore, withStoreRead } from '@/lib/storage';
+import { isSupabaseEnabled, getSupabaseAdmin } from '@/lib/supabase';
 import { isCategory, sanitizeText } from '@/lib/validate';
 import type { Course, CourseCategory } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
 export async function GET() {
+  if (isSupabaseEnabled()) {
+    const { data, error } = await getSupabaseAdmin()
+      .from('courses')
+      .select('id,title,description,category,duration,price,created_at')
+      .order('id');
+    if (error) return json({ message: error.message }, 500);
+    const courses: Course[] = (data || []).map((row) => ({
+      id: Number(row.id),
+      title: row.title,
+      description: row.description,
+      category: row.category,
+      duration: Number(row.duration),
+      price: Number(row.price) || 0,
+      createdAt: row.created_at,
+    }));
+    return json({ courses }, 200, { 'Cache-Control': 'private, max-age=30' });
+  }
   const courses = await withStoreRead((store) => store.courses);
-  return json({ courses }, 200, { 'Cache-Control': 'private, max-age=20' });
+  return json({ courses }, 200, { 'Cache-Control': 'private, max-age=30' });
 }
 
 export async function POST(request: Request) {

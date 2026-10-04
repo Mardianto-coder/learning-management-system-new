@@ -1,9 +1,9 @@
 import { json, isResponse, requireUser } from '@/lib/http';
 import { hashPassword, verifyPassword } from '@/lib/password';
+import { assertSafePassword } from '@/lib/pwned-password';
 import { withStore } from '@/lib/storage';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { loginWithSupabase, updateSupabasePassword } from '@/lib/supabase-auth';
-import { validatePasswordFormat } from '@/lib/validate';
 
 export const runtime = 'nodejs';
 
@@ -16,14 +16,14 @@ export async function PUT(request: Request) {
     const currentPassword = String(body.currentPassword || '');
     const password = String(body.password || '');
     if (!currentPassword) return json({ message: 'Current password is required' }, 400);
-    const pw = validatePasswordFormat(password);
-    if (!pw.valid) return json({ message: pw.message }, 400);
+    const pw = await assertSafePassword(password);
+    if (pw) return json({ message: pw }, 400);
 
     return withStore(async (store) => {
       const user = store.users.find((u) => u.id === auth.id);
       if (!user) return json({ message: 'User not found' }, 404);
       if (isSupabaseEnabled()) {
-        await loginWithSupabase(user.email, currentPassword, user.role);
+        await loginWithSupabase(user.email, currentPassword);
         if (user.authId) await updateSupabasePassword(user.authId, password);
         return json({ message: 'Password changed successfully' });
       }

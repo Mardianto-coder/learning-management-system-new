@@ -1,5 +1,5 @@
 import { generateToken, toPublicUser } from '@/lib/auth';
-import { json, isResponse, requireUser } from '@/lib/http';
+import { json, jsonWithSession, isResponse, requireUser } from '@/lib/http';
 import { withStore } from '@/lib/storage';
 import { isEmail, sanitizeText } from '@/lib/validate';
 import { isSupabaseEnabled } from '@/lib/supabase';
@@ -25,11 +25,15 @@ export async function PUT(request: Request) {
         await updateSupabaseEmail(user.authId, newEmail);
       }
       user.email = newEmail;
-      return json({
-        message: 'Email updated successfully',
-        user: toPublicUser(user),
-        token: generateToken(user),
-      });
+      const token = generateToken(user);
+      return jsonWithSession(
+        {
+          message: 'Email updated successfully',
+          user: toPublicUser(user),
+          token,
+        },
+        token,
+      );
     });
   } catch {
     return json({ message: 'Failed to update email' }, 500);

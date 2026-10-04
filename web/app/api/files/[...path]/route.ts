@@ -1,21 +1,14 @@
 import { readFile } from 'fs/promises';
 import { json } from '@/lib/http';
-import { verifyToken } from '@/lib/auth';
+import { getBearerUser } from '@/lib/auth';
 import { resolveUploadPath } from '@/lib/uploads';
 
 export const runtime = 'nodejs';
 
 type Ctx = { params: Promise<{ path: string[] }> };
 
-function authFromRequest(request: Request) {
-  const header = request.headers.get('authorization') || '';
-  const queryToken = new URL(request.url).searchParams.get('token');
-  const raw = header.startsWith('Bearer ') ? header.slice(7) : queryToken;
-  return raw ? verifyToken(raw) : null;
-}
-
 export async function GET(request: Request, ctx: Ctx) {
-  const user = authFromRequest(request);
+  const user = getBearerUser(request);
   if (!user) return json({ message: 'Authentication required' }, 401);
 
   const segments = (await ctx.params).path || [];
@@ -40,11 +33,13 @@ export async function GET(request: Request, ctx: Ctx) {
       webp: 'image/webp',
       zip: 'application/zip',
     };
+    const safeName = filename.replace(/["\\\r\n]/g, '_');
     return new Response(new Uint8Array(data), {
       headers: {
         'Content-Type': types[ext || ''] || 'application/octet-stream',
-        'Content-Disposition': `inline; filename="${filename}"`,
+        'Content-Disposition': `inline; filename="${safeName}"`,
         'Cache-Control': 'private, max-age=3600',
+        'X-Content-Type-Options': 'nosniff',
       },
     });
   } catch {

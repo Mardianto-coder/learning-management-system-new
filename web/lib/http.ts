@@ -1,8 +1,17 @@
+import { expireAuthCookie, serializeAuthCookie } from './auth-cookie';
 import { getBearerUser } from './auth';
 import type { PublicUser, UserRole } from './types';
 
 export function json(body: unknown, status = 200, headers?: HeadersInit): Response {
   return Response.json(body, { status, headers });
+}
+
+export function jsonWithSession(body: unknown, token: string, status = 200): Response {
+  return json(body, status, { 'Set-Cookie': serializeAuthCookie(token) });
+}
+
+export function jsonClearSession(body: unknown, status = 200): Response {
+  return json(body, status, { 'Set-Cookie': expireAuthCookie() });
 }
 
 export function requireUser(request: Request, role?: UserRole): PublicUser | Response {

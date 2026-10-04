@@ -2,12 +2,15 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { getAllCourses } from '@/lib/client-api';
 import type { Course, CourseCategory } from '@/lib/types';
 
+const STALE_MS = 30_000;
+
 interface CoursesState {
   items: Course[];
   loading: boolean;
   error: string | null;
   search: string;
   category: CourseCategory | '';
+  fetchedAt: number;
 }
 
 const initialState: CoursesState = {
@@ -16,9 +19,21 @@ const initialState: CoursesState = {
   error: null,
   search: '',
   category: '',
+  fetchedAt: 0,
 };
 
-export const fetchCourses = createAsyncThunk('courses/fetch', async () => getAllCourses());
+export const fetchCourses = createAsyncThunk(
+  'courses/fetch',
+  async () => getAllCourses(),
+  {
+    condition: (_, { getState }) => {
+      const { courses } = getState() as { courses: CoursesState };
+      if (courses.loading) return false;
+      if (courses.items.length && Date.now() - courses.fetchedAt < STALE_MS) return false;
+      return true;
+    },
+  },
+);
 
 const coursesSlice = createSlice({
   name: 'courses',
@@ -34,12 +49,13 @@ const coursesSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchCourses.pending, (state) => {
-        state.loading = true;
+        if (!state.items.length) state.loading = true;
         state.error = null;
       })
       .addCase(fetchCourses.fulfilled, (state, action) => {
         state.loading = false;
         state.items = action.payload;
+        state.fetchedAt = Date.now();
       })
       .addCase(fetchCourses.rejected, (state, action) => {
         state.loading = false;

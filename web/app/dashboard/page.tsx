@@ -13,6 +13,7 @@ import {
   getOrders,
   getStudentAssignments,
   getStudentCourses,
+  logoutSession,
   submitAssignment,
   updateAssignment,
   updateMyProfile,
@@ -356,7 +357,8 @@ export default function StudentDashboardPage() {
           <button
             type="button"
             className="portal-logout"
-            onClick={() => {
+            onClick={async () => {
+              await logoutSession();
               dispatch(logout());
               router.push('/');
             }}
@@ -656,7 +658,7 @@ export default function StudentDashboardPage() {
                 </label>
                 <label className="portal-field">
                   <span>Password baru:</span>
-                  <input name="password" type="password" required minLength={6} />
+                  <input name="password" type="password" required minLength={8} autoComplete="new-password" />
                 </label>
                 <div className="portal-field">
                   <span />

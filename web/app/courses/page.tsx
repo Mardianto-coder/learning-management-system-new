@@ -15,7 +15,6 @@ export default function CoursesPage() {
   const router = useRouter();
   const { items, loading, error, search, category } = useAppSelector((s) => s.courses);
   const user = useAppSelector((s) => s.auth.user);
-  const ready = useAppSelector((s) => s.auth.ready);
   const cart = useAppSelector((s) => s.cart.items);
   const [notice, setNotice] = useState('');
 
@@ -86,7 +85,7 @@ export default function CoursesPage() {
         </div>
         {notice ? <div className="status-info info">{notice}</div> : null}
         {error ? <div className="status-info error">{error}</div> : null}
-        {loading || !ready ? <p>Loading courses...</p> : null}
+        {loading && items.length === 0 ? <p>Loading courses...</p> : null}
         <div className="courses-grid">
           {filtered.map((course) => {
             const paid = isPaidCourse(course);

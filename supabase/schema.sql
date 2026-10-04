@@ -115,7 +115,7 @@ create policy "public read payment" on public.payment_settings for select using 
 create policy "public read banks" on public.bank_accounts for select using (true);
 
 create policy "public read assignment files" on storage.objects for select using (bucket_id in ('assignments', 'payments', 'avatars'));
-create policy "service upload files" on storage.objects for insert with check (bucket_id in ('assignments', 'payments', 'avatars'));
+-- Upload file hanya lewat API (service_role). Jangan beri policy INSERT publik.
 
 insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true)

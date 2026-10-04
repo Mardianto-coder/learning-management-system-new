@@ -1,5 +1,6 @@
 import { generateToken, toPublicUser } from './auth';
-import { getSupabaseAdmin } from './supabase';
+import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin, getSupabaseServiceKey, getSupabaseUrl } from './supabase';
 import { withStore, withStoreRead } from './storage';
 import type { User, UserRole } from './types';
 
@@ -11,22 +12,8 @@ export async function registerWithSupabase(input: {
 }) {
   const db = getSupabaseAdmin();
   const existing = await withStoreRead((store) => store.users.find((u) => u.email.toLowerCase() === input.email));
-
-  if (existing?.authId) {
-    const { error } = await db.auth.admin.updateUserById(existing.authId, { password: input.password });
-    if (error) throw new Error(error.message);
-    return withStore(async (store) => {
-      const user = store.users.find((u) => u.id === existing.id);
-      if (!user) throw new Error('User not found');
-      user.name = input.name;
-      user.role = input.role;
-      return {
-        message: 'Password updated successfully. You can now login with your new password.',
-        user: toPublicUser(user),
-        token: generateToken(user),
-        status: 200,
-      };
-    });
+  if (existing) {
+    throw new Error('Email sudah terdaftar. Silakan login');
   }
 
   const created = await db.auth.admin.createUser({
@@ -53,20 +40,23 @@ export async function registerWithSupabase(input: {
       message: 'User registered successfully',
       user: toPublicUser(user),
       token: generateToken(user),
-      status: 201,
+      status: 201 as const,
     };
   });
 }
 
-export async function loginWithSupabase(email: string, password: string, role: UserRole) {
-  const db = getSupabaseAdmin();
-  const { error } = await db.auth.signInWithPassword({ email, password });
+export async function loginWithSupabase(email: string, password: string) {
+  const url = getSupabaseUrl();
+  const key = getSupabaseServiceKey();
+  const authClient = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { error } = await authClient.auth.signInWithPassword({ email, password });
   if (error) throw new Error('Invalid credentials');
 
   return withStoreRead(async (store) => {
     const user = store.users.find((u) => u.email.toLowerCase() === email);
     if (!user) throw new Error('Profil belum ada. Daftar ulang sekali lagi.');
-    if (user.role !== role) throw new Error('Role mismatch');
     return {
       message: 'Login successful',
       user: toPublicUser(user),

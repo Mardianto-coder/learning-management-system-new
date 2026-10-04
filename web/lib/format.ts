@@ -7,12 +7,7 @@ export function formatRupiah(amount: number): string {
 }
 
 export function authMediaUrl(url?: string): string {
-  if (!url || typeof window === 'undefined') return url || '';
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  const token = localStorage.getItem('authToken');
-  if (!token) return url;
-  const join = url.includes('?') ? '&' : '?';
-  return `${url}${join}token=${encodeURIComponent(token)}`;
+  return url || '';
 }
 
 export function isVideo(mime?: string): boolean {

@@ -6,7 +6,6 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { clearAuthError, login, registerAccount } from '@/store/slices/authSlice';
 import { resetPassword } from '@/lib/client-api';
 import { validatePasswordFormat } from '@/lib/validate';
-import type { UserRole } from '@/lib/types';
 
 export default function AuthPanel() {
   const dispatch = useAppDispatch();
@@ -29,7 +28,6 @@ export default function AuthPanel() {
       login({
         email: String(form.get('email')),
         password: String(form.get('password')),
-        role: String(form.get('role')) as UserRole,
       }),
     );
     if (login.fulfilled.match(result)) {
@@ -52,7 +50,6 @@ export default function AuthPanel() {
         name: String(form.get('name')),
         email: String(form.get('email')),
         password,
-        role: String(form.get('role')) as UserRole,
       }),
     );
     if (registerAccount.fulfilled.match(result)) {
@@ -93,15 +90,7 @@ export default function AuthPanel() {
           </div>
           <div className="form-group">
             <label>Password</label>
-            <input name="password" type="password" required />
-          </div>
-          <div className="form-group">
-            <label>Role</label>
-            <select name="role" required defaultValue="">
-              <option value="">Select Role</option>
-              <option value="student">Student</option>
-              <option value="admin">Admin</option>
-            </select>
+            <input name="password" type="password" required autoComplete="current-password" />
           </div>
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? 'Please wait...' : 'Login'}
@@ -118,7 +107,7 @@ export default function AuthPanel() {
         <form className="auth-form active" onSubmit={onForgot}>
           <h2>Reset Password</h2>
           <p style={{ color: 'var(--text-light)', marginBottom: '1.5rem', fontSize: '0.9em' }}>
-            Enter your email address. If the email exists, you can use the register form to set a new password.
+            Enter email Anda. Jika akun ada, silakan login lalu ubah password dari menu profil. Reset lewat form daftar sudah dinonaktifkan.
           </p>
           <div className="form-group">
             <label>Email</label>
@@ -152,20 +141,13 @@ export default function AuthPanel() {
               name="password"
               type="password"
               required
+              autoComplete="new-password"
               onChange={(e) => setPasswordHint(validatePasswordFormat(e.target.value).message)}
             />
             <small className="form-help-text">
-              Password harus minimal 6 karakter, mengandung huruf besar, huruf kecil, dan angka
+              Minimal 8 karakter, huruf besar, huruf kecil, dan angka. Jangan pakai password yang pernah bocor atau dipakai di situs lain.
             </small>
             {passwordHint ? <small className="password-feedback">{passwordHint}</small> : null}
-          </div>
-          <div className="form-group">
-            <label>Role</label>
-            <select name="role" required defaultValue="">
-              <option value="">Select Role</option>
-              <option value="student">Student</option>
-              <option value="admin">Admin</option>
-            </select>
           </div>
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? 'Please wait...' : 'Register'}
