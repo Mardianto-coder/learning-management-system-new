@@ -69,10 +69,13 @@ export default function CartPage() {
       );
       dispatch(clearCart());
       setMessage(result.message);
-      setOrders(await getOrders());
       setSenderBank('');
       setOtherBank('');
-      e.currentTarget.reset();
+      try {
+        setOrders(await getOrders());
+      } catch {
+        /* pesanan sudah terkirim; daftar status akan tampil setelah refresh */
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout gagal');
     } finally {
