@@ -2,7 +2,7 @@ import { generateToken, isJwtConfigured, toPublicUser } from '@/lib/auth';
 import { json, jsonWithSession } from '@/lib/http';
 import { hashPassword } from '@/lib/password';
 import { assertSafePassword } from '@/lib/pwned-password';
-import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { clientIp, rateLimit, tooManyTriesMessage } from '@/lib/rate-limit';
 import { withStore } from '@/lib/storage';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { registerWithSupabase } from '@/lib/supabase-auth';
@@ -14,9 +14,11 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const limited = rateLimit(`register:${clientIp(request)}`, 5, 60 * 60 * 1000);
+    const limited = rateLimit(`register:${clientIp(request)}`, 20, 15 * 60 * 1000);
     if (!limited.ok) {
-      return json({ message: 'Terlalu banyak percobaan. Coba lagi nanti' }, 429);
+      return json({ message: tooManyTriesMessage(limited.retryAfterSec) }, 429, {
+        'Retry-After': String(limited.retryAfterSec),
+      });
     }
 
     const body = (await request.json()) as {

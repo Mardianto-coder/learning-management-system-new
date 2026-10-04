@@ -25,3 +25,8 @@ export function rateLimit(
   }
   return { ok: true, retryAfterSec: Math.ceil((current.resetAt - now) / 1000) };
 }
+
+export function tooManyTriesMessage(retryAfterSec: number): string {
+  const minutes = Math.max(1, Math.ceil(retryAfterSec / 60));
+  return `Terlalu banyak percobaan. Tunggu sekitar ${minutes} menit, lalu daftar/login lagi.`;
+}

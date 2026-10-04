@@ -1,14 +1,16 @@
 import { json } from '@/lib/http';
-import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { clientIp, rateLimit, tooManyTriesMessage } from '@/lib/rate-limit';
 import { isEmail, sanitizeText } from '@/lib/validate';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
-    const limited = rateLimit(`reset:${clientIp(request)}`, 5, 60 * 60 * 1000);
+    const limited = rateLimit(`reset:${clientIp(request)}`, 10, 15 * 60 * 1000);
     if (!limited.ok) {
-      return json({ message: 'Terlalu banyak percobaan. Coba lagi nanti' }, 429);
+      return json({ message: tooManyTriesMessage(limited.retryAfterSec) }, 429, {
+        'Retry-After': String(limited.retryAfterSec),
+      });
     }
 
     const body = (await request.json()) as { email?: string };
