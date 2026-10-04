@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   compress: true,
   experimental: {
     serverActions: {
-      bodySizeLimit: '500mb',
+      bodySizeLimit: '4.5mb',
     },
   },
   async headers() {

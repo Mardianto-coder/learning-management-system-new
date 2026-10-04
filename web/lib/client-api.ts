@@ -1,5 +1,6 @@
 import type { Assignment, Course, CourseData, Order, PaymentSettings, PublicUser, UserRole } from './types';
 import type { StudentProfile } from './student-profile';
+import { compressForUpload } from './compress-image';
 
 async function parseResponse<T>(response: Response): Promise<T> {
   const raw = await response.text();
@@ -10,10 +11,16 @@ async function parseResponse<T>(response: Response): Promise<T> {
     data = {};
   }
   if (!response.ok) {
-    const message =
-      (data as { message?: string }).message ||
-      ((data as { errors?: { message: string }[] }).errors || []).map((e) => e.message).join(', ') ||
-      `Gagal unggah (kode ${response.status}). Coba file lebih kecil dari 500 MB.`;
+    const fromApi = (data as { message?: string }).message;
+    const fromErrors = ((data as { errors?: { message: string }[] }).errors || []).map((e) => e.message).join(', ');
+    let message = fromApi || fromErrors;
+    if (!message && response.status === 413) {
+      message =
+        'File ditolak server (kode 413). Vercel membatasi unggahan sekitar 4,5 MB. Foto akan dikompres otomatis; PDF harus di bawah 4 MB.';
+    }
+    if (!message) {
+      message = `Gagal unggah (kode ${response.status}).`;
+    }
     throw new Error(message);
   }
   return data as T;
@@ -135,7 +142,7 @@ export async function submitAssignment(assignmentData: {
   form.append('courseId', String(assignmentData.courseId));
   form.append('title', assignmentData.title);
   form.append('content', assignmentData.content);
-  if (assignmentData.file) form.append('file', assignmentData.file);
+  if (assignmentData.file) form.append('file', await compressForUpload(assignmentData.file));
   const data = await parseResponse<{ assignment: Assignment }>(
     await apiFetch('/api/assignments', { method: 'POST', headers: authHeaders(false), body: form }),
   );
@@ -149,7 +156,7 @@ export async function updateAssignment(
   const form = new FormData();
   if (assignmentData.title) form.append('title', assignmentData.title);
   if (assignmentData.content) form.append('content', assignmentData.content);
-  if (assignmentData.file) form.append('file', assignmentData.file);
+  if (assignmentData.file) form.append('file', await compressForUpload(assignmentData.file));
   const data = await parseResponse<{ assignment: Assignment }>(
     await apiFetch(`/api/assignments/${assignmentId}`, {
       method: 'PUT',
@@ -183,7 +190,7 @@ export async function checkoutOrder(courseIds: number[], note: string, proof?: F
   form.append('courseIds', JSON.stringify(courseIds));
   form.append('note', note);
   form.append('senderBank', senderBank || '');
-  if (proof) form.append('proof', proof);
+  if (proof) form.append('proof', await compressForUpload(proof));
   const data = await parseResponse<{ order: Order; message: string }>(
     await apiFetch('/api/orders', { method: 'POST', headers: authHeaders(false), body: form }),
   );
@@ -238,7 +245,7 @@ export async function updateMyProfile(patch: Partial<StudentProfile>, photo?: Fi
       if (key === 'photoDataUrl') return;
       if (value !== undefined && value !== null) form.append(key, String(value));
     });
-    form.append('photo', photo);
+    form.append('photo', await compressForUpload(photo));
     return parseResponse<{ message: string; name: string; email: string; profile: StudentProfile }>(
       await apiFetch('/api/profile', { method: 'PUT', headers: authHeaders(false), body: form }),
     );
