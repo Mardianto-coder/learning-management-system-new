@@ -22,6 +22,7 @@ export default function CartPage() {
   const [error, setError] = useState('');
   const [senderBank, setSenderBank] = useState('');
   const [otherBank, setOtherBank] = useState('');
+  const [sending, setSending] = useState(false);
   const total = items.reduce((sum, item) => sum + item.price, 0);
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function CartPage() {
   async function onCheckout(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
+    setMessage('');
     const form = new FormData(e.currentTarget);
     const note = String(form.get('note') || '');
     const proof = form.get('proof');
@@ -53,11 +55,16 @@ export default function CartPage() {
       setError('Pilih bank asal pembayaran');
       return;
     }
+    if (!(proof instanceof File) || proof.size <= 0) {
+      setError('Unggah bukti transfer (gambar atau PDF)');
+      return;
+    }
+    setSending(true);
     try {
       const result = await checkoutOrder(
         items.map((item) => item.courseId),
         note,
-        proof instanceof File && proof.size > 0 ? proof : null,
+        proof,
         fromBank,
       );
       dispatch(clearCart());
@@ -68,6 +75,8 @@ export default function CartPage() {
       e.currentTarget.reset();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout gagal');
+    } finally {
+      setSending(false);
     }
   }
 
@@ -121,9 +130,10 @@ export default function CartPage() {
                   <label>Bukti bayar (gambar/PDF)</label>
                   <input name="proof" type="file" accept="image/*,.pdf" />
                 </div>
-                <button type="submit" className="btn btn-primary">
-                  Kirim pembayaran
+                <button type="submit" className="btn btn-primary" disabled={sending}>
+                  {sending ? 'Mengirim...' : 'Kirim pembayaran'}
                 </button>
+                {error ? <p className="status-info error" style={{ marginTop: '0.75rem' }}>{error}</p> : null}
               </form>
             </>
           ) : null}

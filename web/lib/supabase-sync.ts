@@ -1,6 +1,7 @@
 import type { Assignment, Course, Enrollment, Order, PaymentSettings, User } from './types';
 import { getSupabaseAdmin } from './supabase';
 import type { Counters, Store } from './storage';
+import { dedupeBankAccounts } from './banks';
 
 function nextAfter(ids: number[]): number {
   return (ids.reduce((max, id) => Math.max(max, id), 0) || 0) + 1;
@@ -90,12 +91,14 @@ export async function loadStoreFromSupabase(): Promise<Store> {
     instruction:
       settings.data?.instruction ||
       'Transfer sesuai total pembayaran ke salah satu rekening berikut. Lalu unggah bukti transfer agar dosen/admin bisa mengaktifkan kelas.',
-    accounts: (banks.data || []).map((row) => ({
-      id: Number(row.id),
-      bank: row.bank,
-      accountNumber: row.account_number,
-      accountName: row.account_name,
-    })),
+    accounts: dedupeBankAccounts(
+      (banks.data || []).map((row) => ({
+        id: Number(row.id),
+        bank: row.bank,
+        accountNumber: row.account_number,
+        accountName: row.account_name,
+      })),
+    ),
   };
 
   const counters: Counters = {
@@ -133,6 +136,9 @@ export async function saveStoreToSupabase(store: Store): Promise<void> {
     const withoutProfile = profileRows.map(({ profile: _profile, ...row }) => row);
     const retry = await db.from('profiles').upsert(withoutProfile, { onConflict: 'id' });
     profileError = retry.error;
+  }
+  if (profileError && /row-level security|rls/i.test(profileError.message)) {
+    profileError = null;
   }
   throwIfError(profileError, 'Save profiles');
 
@@ -205,10 +211,12 @@ export async function saveStoreToSupabase(store: Store): Promise<void> {
     throwIfError(error, 'Save enrollments');
   }
 
-  await db.from('bank_accounts').delete().neq('id', -1);
-  if (store.payment.accounts.length) {
+  const { error: bankDeleteError } = await db.from('bank_accounts').delete().neq('id', -1);
+  throwIfError(bankDeleteError, 'Clear bank accounts');
+  const uniqueBanks = dedupeBankAccounts(store.payment.accounts);
+  if (uniqueBanks.length) {
     const { error } = await db.from('bank_accounts').insert(
-      store.payment.accounts.map((account) => ({
+      uniqueBanks.map((account) => ({
         bank: account.bank,
         account_number: account.accountNumber,
         account_name: account.accountName,

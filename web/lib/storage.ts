@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { isSupabaseEnabled } from './supabase';
 import { loadStoreFromSupabase, saveStoreToSupabase } from './supabase-sync';
+import { dedupeBankAccounts } from './banks';
 import type { Assignment, Course, Enrollment, Order, PaymentSettings, User } from './types';
 
 const DATA_DIR = path.join(process.cwd(), '..', 'data');
@@ -153,10 +154,7 @@ async function loadStoreUncached(): Promise<Store> {
   const assignments = await readJSONFile<Assignment[]>(ASSIGNMENTS_FILE, []);
   const orders = await readJSONFile<Order[]>(ORDERS_FILE, []);
   let payment = await readJSONFile<PaymentSettings>(PAYMENT_FILE, DEFAULT_PAYMENT);
-  if (!payment.accounts?.length) {
-    payment = DEFAULT_PAYMENT;
-    await writeJSONFile(PAYMENT_FILE, payment);
-  }
+  payment = { ...payment, accounts: dedupeBankAccounts(payment.accounts?.length ? payment.accounts : DEFAULT_PAYMENT.accounts) };
   const counters = await readJSONFile<Counters>(COUNTERS_FILE, {
     nextUserId: 1,
     nextCourseId: 5,
@@ -190,6 +188,9 @@ export function withStore<T>(fn: (store: Store) => Promise<T>): Promise<T> {
   return lock(async () => {
     const store = await loadStore(true);
     const result = await fn(store);
+    if (result instanceof Response && result.status >= 400) {
+      return result;
+    }
     await saveStore(store);
     return result;
   });

@@ -20,8 +20,8 @@ export default function BankAccountsBox({ payment }: { payment: PaymentSettings 
     <div className="bank-box">
       <h3>Rekening tujuan pembayaran</h3>
       <p>{payment.instruction}</p>
-      {payment.accounts.map((account) => (
-        <div className="bank-account" key={account.id}>
+      {payment.accounts.map((account, index) => (
+        <div className="bank-account" key={`${account.bank}-${account.accountNumber}-${index}`}>
           <strong>{account.bank}</strong>
           <p>
             No. rekening: <code>{account.accountNumber}</code>

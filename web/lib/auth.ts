@@ -67,7 +67,7 @@ export function getBearerUser(request: Request): PublicUser | null {
   if (!token) return null;
   const decoded = verifyToken(token);
   if (!decoded) return null;
-  return { id: decoded.id, name: '', email: decoded.email, role: decoded.role };
+  return { id: Number(decoded.id), name: '', email: decoded.email, role: decoded.role };
 }
 
 export function toPublicUser(user: User): PublicUser {

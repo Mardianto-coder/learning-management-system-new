@@ -1,12 +1,19 @@
 import { json, isResponse, requireUser } from '@/lib/http';
 import { withStore, withStoreRead } from '@/lib/storage';
+import { dedupeBankAccounts } from '@/lib/banks';
 import { sanitizeText } from '@/lib/validate';
-import type { BankAccount, PaymentSettings } from '@/lib/types';
+import type { PaymentSettings } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
 export async function GET() {
-  return withStoreRead((store) => json({ payment: store.payment }, 200, { 'Cache-Control': 'private, max-age=30' }));
+  return withStoreRead((store) =>
+    json(
+      { payment: { ...store.payment, accounts: dedupeBankAccounts(store.payment.accounts) } },
+      200,
+      { 'Cache-Control': 'private, max-age=10' },
+    ),
+  );
 }
 
 export async function PUT(request: Request) {
@@ -16,19 +23,7 @@ export async function PUT(request: Request) {
     const body = (await request.json()) as Partial<PaymentSettings>;
     const instruction = sanitizeText(body.instruction);
     const accounts = Array.isArray(body.accounts) ? body.accounts : [];
-    const cleaned: BankAccount[] = [];
-    for (const [index, account] of accounts.entries()) {
-      const bank = sanitizeText(account.bank);
-      const accountNumber = sanitizeText(account.accountNumber).replace(/\s/g, '');
-      const accountName = sanitizeText(account.accountName);
-      if (!bank || !accountNumber || !accountName) continue;
-      cleaned.push({
-        id: Number(account.id) || index + 1,
-        bank,
-        accountNumber,
-        accountName,
-      });
-    }
+    const cleaned = dedupeBankAccounts(accounts);
     if (!cleaned.length) {
       return json({ message: 'Minimal satu rekening tujuan harus diisi' }, 400);
     }
