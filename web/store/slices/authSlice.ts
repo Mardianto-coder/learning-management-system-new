@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { loginUser, registerUser } from '@/lib/client-api';
-import type { PublicUser } from '@/lib/types';
+import type { PublicUser, UserRole } from '@/lib/types';
 
 interface AuthState {
   user: PublicUser | null;
@@ -41,15 +41,15 @@ export const hydrateAuth = createAsyncThunk('auth/hydrate', async () => {
 
 export const login = createAsyncThunk(
   'auth/login',
-  async (payload: { email: string; password: string }) => {
-    return loginUser(payload.email, payload.password);
+  async (payload: { email: string; password: string; role: UserRole }) => {
+    return loginUser(payload.email, payload.password, payload.role);
   },
 );
 
 export const registerAccount = createAsyncThunk(
   'auth/register',
-  async (payload: { name: string; email: string; password: string }) => {
-    return registerUser(payload.name, payload.email, payload.password);
+  async (payload: { name: string; email: string; password: string; role: UserRole }) => {
+    return registerUser(payload.name, payload.email, payload.password, payload.role);
   },
 );
 

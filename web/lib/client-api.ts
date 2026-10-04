@@ -1,4 +1,4 @@
-import type { Assignment, Course, CourseData, Order, PaymentSettings, PublicUser } from './types';
+import type { Assignment, Course, CourseData, Order, PaymentSettings, PublicUser, UserRole } from './types';
 import type { StudentProfile } from './student-profile';
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -31,23 +31,23 @@ function apiFetch(input: RequestInfo | URL, init?: RequestInit) {
   return fetch(input, { ...init, credentials: 'include' });
 }
 
-export async function registerUser(name: string, email: string, password: string) {
+export async function registerUser(name: string, email: string, password: string, role: UserRole) {
   const data = await parseResponse<{ user: PublicUser; token: string }>(
     await apiFetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, role }),
     }),
   );
   return data;
 }
 
-export async function loginUser(email: string, password: string) {
+export async function loginUser(email: string, password: string, role: UserRole) {
   return parseResponse<{ user: PublicUser; token: string }>(
     await apiFetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, role }),
     }),
   );
 }

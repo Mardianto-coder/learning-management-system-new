@@ -6,7 +6,7 @@ import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { withStore } from '@/lib/storage';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { registerWithSupabase } from '@/lib/supabase-auth';
-import { isEmail, sanitizeText } from '@/lib/validate';
+import { isEmail, isRole, sanitizeText } from '@/lib/validate';
 import type { User, UserRole } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -24,21 +24,17 @@ export async function POST(request: Request) {
       email?: string;
       password?: string;
       role?: string;
-      adminSecret?: string;
     };
     const name = sanitizeText(body.name);
     const email = sanitizeText(body.email).toLowerCase();
     const password = String(body.password || '');
-    const setupSecret = String(process.env.ADMIN_SETUP_SECRET ?? '').trim();
-    const role: UserRole =
-      setupSecret && sanitizeText(body.adminSecret) === setupSecret && body.role === 'admin'
-        ? 'admin'
-        : 'student';
+    const role = body.role as UserRole;
 
     if (name.length < 2 || name.length > 100) {
       return json({ message: 'Name must be between 2 and 100 characters' }, 400);
     }
     if (!isEmail(email)) return json({ message: 'Invalid email format' }, 400);
+    if (!isRole(role)) return json({ message: 'Pilih peran: siswa/mahasiswa atau admin/dosen' }, 400);
     const pw = await assertSafePassword(password);
     if (pw) return json({ message: pw }, 400);
 

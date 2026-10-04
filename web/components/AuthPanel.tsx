@@ -6,6 +6,20 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { clearAuthError, login, registerAccount } from '@/store/slices/authSlice';
 import { resetPassword } from '@/lib/client-api';
 import { validatePasswordFormat } from '@/lib/validate';
+import type { UserRole } from '@/lib/types';
+
+function RoleSelect() {
+  return (
+    <div className="form-group">
+      <label>Peran</label>
+      <select name="role" required defaultValue="">
+        <option value="">Pilih peran</option>
+        <option value="student">Siswa / Mahasiswa</option>
+        <option value="admin">Admin / Dosen</option>
+      </select>
+    </div>
+  );
+}
 
 export default function AuthPanel() {
   const dispatch = useAppDispatch();
@@ -28,6 +42,7 @@ export default function AuthPanel() {
       login({
         email: String(form.get('email')),
         password: String(form.get('password')),
+        role: String(form.get('role')) as UserRole,
       }),
     );
     if (login.fulfilled.match(result)) {
@@ -50,6 +65,7 @@ export default function AuthPanel() {
         name: String(form.get('name')),
         email: String(form.get('email')),
         password,
+        role: String(form.get('role')) as UserRole,
       }),
     );
     if (registerAccount.fulfilled.match(result)) {
@@ -92,6 +108,7 @@ export default function AuthPanel() {
             <label>Password</label>
             <input name="password" type="password" required autoComplete="current-password" />
           </div>
+          <RoleSelect />
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? 'Please wait...' : 'Login'}
           </button>
@@ -149,6 +166,7 @@ export default function AuthPanel() {
             </small>
             {passwordHint ? <small className="password-feedback">{passwordHint}</small> : null}
           </div>
+          <RoleSelect />
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? 'Please wait...' : 'Register'}
           </button>

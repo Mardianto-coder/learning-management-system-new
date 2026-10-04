@@ -45,7 +45,7 @@ export async function registerWithSupabase(input: {
   });
 }
 
-export async function loginWithSupabase(email: string, password: string) {
+export async function loginWithSupabase(email: string, password: string, role?: UserRole) {
   const url = getSupabaseUrl();
   const key = getSupabaseServiceKey();
   const authClient = createClient(url, key, {
@@ -57,6 +57,13 @@ export async function loginWithSupabase(email: string, password: string) {
   return withStoreRead(async (store) => {
     const user = store.users.find((u) => u.email.toLowerCase() === email);
     if (!user) throw new Error('Profil belum ada. Daftar ulang sekali lagi.');
+    if (role && user.role !== role) {
+      throw new Error(
+        role === 'admin'
+          ? 'Akun ini terdaftar sebagai siswa/mahasiswa. Pilih peran yang sesuai.'
+          : 'Akun ini terdaftar sebagai admin/dosen. Pilih peran yang sesuai.',
+      );
+    }
     return {
       message: 'Login successful',
       user: toPublicUser(user),
