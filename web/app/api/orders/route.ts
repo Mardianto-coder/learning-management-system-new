@@ -1,5 +1,5 @@
 import { json, isResponse, requireUser } from '@/lib/http';
-import { withStore, loadStore } from '@/lib/storage';
+import { withStore, withStoreRead } from '@/lib/storage';
 import { saveUpload } from '@/lib/uploads';
 import { coursePrice, isActiveEnrollment, isPaidCourse } from '@/lib/types';
 import type { FileAttachment, Order, OrderItem } from '@/lib/types';
@@ -19,12 +19,13 @@ function withNames(store: { users: { id: number; name: string; email: string }[]
 export async function GET(request: Request) {
   const auth = requireUser(request);
   if (isResponse(auth)) return auth;
-  const store = await loadStore(true);
-  const list =
-    auth.role === 'admin'
-      ? store.orders
-      : store.orders.filter((order) => Number(order.studentId) === Number(auth.id));
-  return json({ orders: list.map((order) => withNames(store, order)) });
+  return withStoreRead((store) => {
+    const list =
+      auth.role === 'admin'
+        ? store.orders
+        : store.orders.filter((order) => Number(order.studentId) === Number(auth.id));
+    return json({ orders: list.map((order) => withNames(store, order)) });
+  });
 }
 
 export async function POST(request: Request) {

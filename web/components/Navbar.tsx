@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
 import { logoutSession } from '@/lib/client-api';
 import { fetchCourses } from '@/store/slices/coursesSlice';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -82,6 +83,7 @@ export default function Navbar() {
               Admin Panel
             </Link>
           )}
+          <ThemeToggle />
           {user ? (
             <button type="button" className="nav-link nav-button" onClick={handleLogout}>
               Logout

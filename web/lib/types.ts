@@ -126,3 +126,21 @@ export function isPaidCourse(course: Pick<Course, 'price'>): boolean {
 export function isActiveEnrollment(enrollment: Enrollment): boolean {
   return !enrollment.status || enrollment.status === 'active';
 }
+
+export interface Lesson {
+  id: number;
+  courseId: number;
+  title: string;
+  content: string;
+  videoUrl?: string;
+  materialUrl?: string;
+  sortOrder: number;
+}
+
+export interface LessonProgress {
+  studentId: number;
+  lessonId: number;
+  completedAt: string;
+}
+
+export type LessonView = Lesson & { locked?: boolean; completed?: boolean };

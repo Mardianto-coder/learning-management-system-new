@@ -9,10 +9,7 @@ import FilePreview from '@/components/FilePreview';
 import PaymentHistoryLine from '@/components/PaymentHistoryLine';
 import {
   changePassword,
-  getMyProfile,
-  getOrders,
-  getStudentAssignments,
-  getStudentCourses,
+  getDashboard,
   logoutSession,
   submitAssignment,
   updateAssignment,
@@ -31,6 +28,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
 import type { Assignment, Course, Order } from '@/lib/types';
 import { authMediaUrl } from '@/lib/format';
+import ThemeToggle from '@/components/ThemeToggle';
 
 type Panel =
   | 'home'
@@ -125,12 +123,12 @@ export default function StudentDashboardPage() {
     }
     recordLoginLog(user.id);
     setLogs(loadLoginLog(user.id));
-    Promise.all([getStudentCourses(user.id), getStudentAssignments(user.id), getOrders(), getMyProfile()])
-      .then(([c, a, o, me]) => {
-        setCourses(c);
-        setAssignments(a);
-        setOrders(o);
-        setProfile(me.profile);
+    getDashboard()
+      .then((data) => {
+        setCourses(data.courses);
+        setAssignments(data.assignments);
+        setOrders(data.orders);
+        setProfile(data.profile);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load dashboard'));
   }, [ready, user, router]);
@@ -354,6 +352,7 @@ export default function StudentDashboardPage() {
             <span />
           </button>
           <h1>{TITLES[panel]}</h1>
+          <ThemeToggle className="theme-toggle-portal" />
           <button
             type="button"
             className="portal-logout"
@@ -728,17 +727,22 @@ export default function StudentDashboardPage() {
                       key={course.id}
                       course={course}
                       actions={
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={() => {
-                            setCourseId(course.id);
-                            setEditing(null);
-                            setModalOpen(true);
-                          }}
-                        >
-                          Kirim tugas
-                        </button>
+                        <>
+                          <Link className="btn btn-outline" href={`/dashboard/materi/${course.id}`}>
+                            Buka materi
+                          </Link>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => {
+                              setCourseId(course.id);
+                              setEditing(null);
+                              setModalOpen(true);
+                            }}
+                          >
+                            Kirim tugas
+                          </button>
+                        </>
                       }
                     />
                   ))}

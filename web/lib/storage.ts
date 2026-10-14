@@ -3,7 +3,8 @@ import path from 'path';
 import { isSupabaseEnabled } from './supabase';
 import { loadStoreFromSupabase, saveStoreToSupabase } from './supabase-sync';
 import { dedupeBankAccounts } from './banks';
-import type { Assignment, Course, Enrollment, Order, PaymentSettings, User } from './types';
+import type { Assignment, Course, Enrollment, Lesson, LessonProgress, Order, PaymentSettings, User } from './types';
+import { DEFAULT_LESSONS } from './lessons-seed';
 
 const DATA_DIR = path.join(process.cwd(), '..', 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
@@ -11,6 +12,8 @@ const COURSES_FILE = path.join(DATA_DIR, 'courses.json');
 const ENROLLMENTS_FILE = path.join(DATA_DIR, 'enrollments.json');
 const ASSIGNMENTS_FILE = path.join(DATA_DIR, 'assignments.json');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+const LESSONS_FILE = path.join(DATA_DIR, 'lessons.json');
+const PROGRESS_FILE = path.join(DATA_DIR, 'lesson-progress.json');
 const PAYMENT_FILE = path.join(DATA_DIR, 'payment-settings.json');
 const COUNTERS_FILE = path.join(DATA_DIR, 'counters.json');
 
@@ -19,6 +22,7 @@ export interface Counters {
   nextCourseId: number;
   nextAssignmentId: number;
   nextOrderId: number;
+  nextLessonId: number;
 }
 
 export interface Store {
@@ -27,6 +31,8 @@ export interface Store {
   enrollments: Enrollment[];
   assignments: Assignment[];
   orders: Order[];
+  lessons: Lesson[];
+  lessonProgress: LessonProgress[];
   payment: PaymentSettings;
   counters: Counters;
 }
@@ -99,7 +105,26 @@ async function writeJSONFile<T>(filePath: string, data: T): Promise<void> {
 let queue: Promise<unknown> = Promise.resolve();
 let cached: { store: Store; at: number } | null = null;
 let inflight: Promise<Store> | null = null;
-const READ_TTL_MS = 8_000;
+const READ_TTL_MS = 30_000;
+
+function storeRevision(store: Store): string {
+  const users = store.users
+    .map((user) => `${user.id}:${user.email}:${user.name}:${user.authId || ''}:${JSON.stringify(user.profile || {})}`)
+    .join(';');
+  const courses = store.courses.map((item) => `${item.id}:${item.title}:${item.price}:${item.duration}`).join(';');
+  const enrollments = store.enrollments
+    .map((item) => `${item.studentId}:${item.courseId}:${item.status || 'active'}`)
+    .join(';');
+  const assignments = store.assignments
+    .map((item) => `${item.id}:${item.status}:${item.score ?? ''}:${item.attachment?.url || ''}`)
+    .join(';');
+  const orders = store.orders.map((item) => `${item.id}:${item.status}:${item.proof?.url || ''}`).join(';');
+  const lessons = (store.lessons || [])
+    .map((item) => `${item.id}:${item.courseId}:${item.sortOrder}:${item.videoUrl || ''}:${item.materialUrl || ''}`)
+    .join(';');
+  const progress = (store.lessonProgress || []).map((item) => `${item.studentId}:${item.lessonId}`).join(';');
+  return `${users}|${courses}|${enrollments}|${assignments}|${orders}|${lessons}|${progress}|${JSON.stringify(store.payment)}|${JSON.stringify(store.counters)}`;
+}
 
 function lock<T>(fn: () => Promise<T>): Promise<T> {
   const run = queue.then(fn, fn);
@@ -153,6 +178,12 @@ async function loadStoreUncached(): Promise<Store> {
   const enrollments = await readJSONFile<Enrollment[]>(ENROLLMENTS_FILE, []);
   const assignments = await readJSONFile<Assignment[]>(ASSIGNMENTS_FILE, []);
   const orders = await readJSONFile<Order[]>(ORDERS_FILE, []);
+  let lessons = await readJSONFile<Lesson[]>(LESSONS_FILE, []);
+  if (lessons.length === 0) {
+    lessons = DEFAULT_LESSONS;
+    await writeJSONFile(LESSONS_FILE, lessons);
+  }
+  const lessonProgress = await readJSONFile<LessonProgress[]>(PROGRESS_FILE, []);
   let payment = await readJSONFile<PaymentSettings>(PAYMENT_FILE, DEFAULT_PAYMENT);
   payment = { ...payment, accounts: dedupeBankAccounts(payment.accounts?.length ? payment.accounts : DEFAULT_PAYMENT.accounts) };
   const counters = await readJSONFile<Counters>(COUNTERS_FILE, {
@@ -160,9 +191,13 @@ async function loadStoreUncached(): Promise<Store> {
     nextCourseId: 5,
     nextAssignmentId: 1,
     nextOrderId: 1,
+    nextLessonId: 7,
   });
   if (!counters.nextOrderId) counters.nextOrderId = 1;
-  return { users, courses, enrollments, assignments, orders, payment, counters };
+  if (!counters.nextLessonId) {
+    counters.nextLessonId = (lessons.reduce((max, item) => Math.max(max, item.id), 0) || 0) + 1;
+  }
+  return { users, courses, enrollments, assignments, orders, lessons, lessonProgress, payment, counters };
 }
 
 export async function saveStore(store: Store): Promise<void> {
@@ -178,6 +213,8 @@ export async function saveStore(store: Store): Promise<void> {
     writeJSONFile(ENROLLMENTS_FILE, store.enrollments),
     writeJSONFile(ASSIGNMENTS_FILE, store.assignments),
     writeJSONFile(ORDERS_FILE, store.orders),
+    writeJSONFile(LESSONS_FILE, store.lessons || []),
+    writeJSONFile(PROGRESS_FILE, store.lessonProgress || []),
     writeJSONFile(PAYMENT_FILE, store.payment),
     writeJSONFile(COUNTERS_FILE, store.counters),
   ]);
@@ -186,12 +223,17 @@ export async function saveStore(store: Store): Promise<void> {
 
 export function withStore<T>(fn: (store: Store) => Promise<T>): Promise<T> {
   return lock(async () => {
-    const store = await loadStore(true);
+    const store = await loadStore();
+    const before = storeRevision(store);
     const result = await fn(store);
     if (result instanceof Response && result.status >= 400) {
       return result;
     }
-    await saveStore(store);
+    if (storeRevision(store) !== before) {
+      await saveStore(store);
+    } else {
+      remember(store);
+    }
     return result;
   });
 }

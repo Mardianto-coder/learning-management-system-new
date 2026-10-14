@@ -67,3 +67,17 @@ export function isCategory(value: string): value is CourseCategory {
 export function sanitizeText(value: unknown): string {
   return String(value ?? '').trim();
 }
+
+export function parseHttpUrl(value: unknown, label: string): { url?: string; error?: string } {
+  const raw = sanitizeText(value);
+  if (!raw) return {};
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return { error: `${label} harus diawali http:// atau https://` };
+    }
+    return { url: parsed.href };
+  } catch {
+    return { error: `${label} tidak valid` };
+  }
+}

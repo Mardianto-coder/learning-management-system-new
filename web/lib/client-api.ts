@@ -1,4 +1,4 @@
-import type { Assignment, Course, CourseData, Order, PaymentSettings, PublicUser, UserRole } from './types';
+import type { Assignment, Course, CourseData, LessonView, Order, PaymentSettings, PublicUser, UserRole } from './types';
 import type { StudentProfile } from './student-profile';
 import { compressForUpload } from './compress-image';
 
@@ -88,6 +88,11 @@ export async function getAllCourses() {
   return data.courses;
 }
 
+export async function getCourse(courseId: number) {
+  const data = await parseResponse<{ course: Course }>(await apiFetch(`/api/courses/${courseId}`));
+  return data.course;
+}
+
 export async function createCourse(courseData: CourseData) {
   const data = await parseResponse<{ course: Course }>(
     await apiFetch('/api/courses', { method: 'POST', headers: authHeaders(), body: JSON.stringify(courseData) }),
@@ -116,6 +121,27 @@ export async function enrollInCourse(courseId: number) {
   await parseResponse<{ message: string }>(
     await apiFetch(`/api/courses/${courseId}/enroll`, { method: 'POST', headers: authHeaders() }),
   );
+}
+
+export async function getDashboard() {
+  return parseResponse<{
+    courses: Course[];
+    assignments: Assignment[];
+    orders: Order[];
+    name: string;
+    email: string;
+    profile: StudentProfile;
+  }>(await apiFetch('/api/dashboard', { headers: authHeaders() }));
+}
+
+export async function getAdminSummary() {
+  return parseResponse<{
+    courses: Course[];
+    assignments: Assignment[];
+    orders: Order[];
+    payment: PaymentSettings;
+    students: { id: number; name: string; email: string; profile: StudentProfile }[];
+  }>(await apiFetch('/api/admin/summary', { headers: authHeaders() }));
 }
 
 export async function getStudentCourses(studentId: number) {
@@ -279,5 +305,38 @@ export async function updateStudentAcademic(
       headers: authHeaders(),
       body: JSON.stringify(payload),
     }),
+  );
+}
+
+export async function getCourseLessons(courseId: number) {
+  const data = await parseResponse<{ lessons: LessonView[]; unlocked: boolean }>(
+    await apiFetch(`/api/courses/${courseId}/lessons`, { headers: authHeaders() }),
+  );
+  return data;
+}
+
+export async function createLesson(
+  courseId: number,
+  payload: { title: string; content: string; videoUrl?: string; materialUrl?: string; sortOrder?: number },
+) {
+  const data = await parseResponse<{ lesson: LessonView }>(
+    await apiFetch(`/api/courses/${courseId}/lessons`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    }),
+  );
+  return data.lesson;
+}
+
+export async function deleteLesson(lessonId: number) {
+  await parseResponse<{ message: string }>(
+    await apiFetch(`/api/lessons/${lessonId}`, { method: 'DELETE', headers: authHeaders() }),
+  );
+}
+
+export async function completeLesson(lessonId: number) {
+  return parseResponse<{ message: string }>(
+    await apiFetch(`/api/lessons/${lessonId}/complete`, { method: 'POST', headers: authHeaders() }),
   );
 }

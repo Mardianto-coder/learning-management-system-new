@@ -66,6 +66,9 @@ export async function DELETE(request: Request, ctx: Ctx) {
     store.courses.splice(index, 1);
     store.enrollments = store.enrollments.filter((e) => e.courseId !== courseId);
     store.assignments = store.assignments.filter((a) => a.courseId !== courseId);
+    const removedLessonIds = new Set((store.lessons || []).filter((item) => item.courseId === courseId).map((item) => item.id));
+    store.lessons = (store.lessons || []).filter((item) => item.courseId !== courseId);
+    store.lessonProgress = (store.lessonProgress || []).filter((item) => !removedLessonIds.has(item.lessonId));
     return json({ message: 'Course deleted successfully' });
   });
 }

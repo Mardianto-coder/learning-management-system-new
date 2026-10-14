@@ -124,7 +124,7 @@ export default function AuthPanel() {
         <form className="auth-form active" onSubmit={onForgot}>
           <h2>Reset Password</h2>
           <p style={{ color: 'var(--text-light)', marginBottom: '1.5rem', fontSize: '0.9em' }}>
-            Enter email Anda. Jika akun ada, silakan login lalu ubah password dari menu profil. Reset lewat form daftar sudah dinonaktifkan.
+            Masukkan email akun. Jika terdaftar di sistem, tautan reset dikirim ke inbox (cek juga spam). Setelah klik tautan, buat password baru.
           </p>
           <div className="form-group">
             <label>Email</label>

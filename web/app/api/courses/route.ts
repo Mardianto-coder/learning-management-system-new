@@ -22,10 +22,10 @@ export async function GET() {
       price: Number(row.price) || 0,
       createdAt: row.created_at,
     }));
-    return json({ courses }, 200, { 'Cache-Control': 'private, max-age=30' });
+    return json({ courses }, 200, { 'Cache-Control': 'private, max-age=60' });
   }
   const courses = await withStoreRead((store) => store.courses);
-  return json({ courses }, 200, { 'Cache-Control': 'private, max-age=30' });
+  return json({ courses }, 200, { 'Cache-Control': 'private, max-age=60' });
 }
 
 export async function POST(request: Request) {

@@ -1,6 +1,7 @@
-import type { Assignment, Course, Enrollment, Order, PaymentSettings, User } from './types';
+import type { Assignment, Course, Enrollment, Lesson, LessonProgress, Order, PaymentSettings, User } from './types';
 import { getSupabaseAdmin } from './supabase';
 import type { Counters, Store } from './storage';
+import { DEFAULT_LESSONS } from './lessons-seed';
 import { dedupeBankAccounts } from './banks';
 
 function nextAfter(ids: number[]): number {
@@ -13,7 +14,7 @@ function throwIfError(error: { message: string } | null, context: string) {
 
 export async function loadStoreFromSupabase(): Promise<Store> {
   const db = getSupabaseAdmin();
-  const [profiles, courses, enrollments, assignments, orders, settings, banks] = await Promise.all([
+  const [profiles, courses, enrollments, assignments, orders, settings, banks, lessons, progress] = await Promise.all([
     db.from('profiles').select('*'),
     db.from('courses').select('*'),
     db.from('enrollments').select('*'),
@@ -21,6 +22,8 @@ export async function loadStoreFromSupabase(): Promise<Store> {
     db.from('orders').select('*'),
     db.from('payment_settings').select('*').eq('id', 1).maybeSingle(),
     db.from('bank_accounts').select('*').order('id'),
+    db.from('lessons').select('*').order('sort_order'),
+    db.from('lesson_progress').select('*'),
   ]);
 
   throwIfError(profiles.error, 'Load profiles');
@@ -30,6 +33,47 @@ export async function loadStoreFromSupabase(): Promise<Store> {
   throwIfError(orders.error, 'Load orders');
   throwIfError(settings.error, 'Load payment settings');
   throwIfError(banks.error, 'Load bank accounts');
+  const lessonTableMissing = Boolean(
+    lessons.error && /does not exist|schema cache|could not find/i.test(lessons.error.message),
+  );
+  const progressTableMissing = Boolean(
+    progress.error && /does not exist|schema cache|could not find/i.test(progress.error.message),
+  );
+  if (!lessonTableMissing) throwIfError(lessons.error, 'Load lessons');
+  if (!progressTableMissing) throwIfError(progress.error, 'Load lesson progress');
+  let mappedLessons: Lesson[] = lessonTableMissing
+    ? DEFAULT_LESSONS
+    : (lessons.data || []).map((row) => ({
+        id: Number(row.id),
+        courseId: Number(row.course_id),
+        title: row.title,
+        content: row.content || '',
+        videoUrl: row.video_url || undefined,
+        materialUrl: row.material_url || undefined,
+        sortOrder: Number(row.sort_order) || 0,
+      }));
+  if (!lessonTableMissing && mappedLessons.length === 0) {
+    const seeded = await db.from('lessons').upsert(
+      DEFAULT_LESSONS.map((item) => ({
+        id: item.id,
+        course_id: item.courseId,
+        title: item.title,
+        content: item.content,
+        video_url: item.videoUrl || null,
+        material_url: item.materialUrl || null,
+        sort_order: item.sortOrder,
+      })),
+      { onConflict: 'id' },
+    );
+    if (!seeded.error) mappedLessons = DEFAULT_LESSONS;
+  }
+  const mappedProgress: LessonProgress[] = progressTableMissing
+    ? []
+    : (progress.data || []).map((row) => ({
+        studentId: Number(row.student_id),
+        lessonId: Number(row.lesson_id),
+        completedAt: row.completed_at,
+      }));
 
   const users: User[] = (profiles.data || []).map((row) => ({
     id: Number(row.id),
@@ -106,6 +150,7 @@ export async function loadStoreFromSupabase(): Promise<Store> {
     nextCourseId: nextAfter(mappedCourses.map((c) => c.id)),
     nextAssignmentId: nextAfter(mappedAssignments.map((a) => a.id)),
     nextOrderId: nextAfter(mappedOrders.map((o) => o.id)),
+    nextLessonId: nextAfter(mappedLessons.map((item) => item.id)),
   };
 
   return {
@@ -114,6 +159,8 @@ export async function loadStoreFromSupabase(): Promise<Store> {
     enrollments: mappedEnrollments,
     assignments: mappedAssignments,
     orders: mappedOrders,
+    lessons: mappedLessons,
+    lessonProgress: mappedProgress,
     payment,
     counters,
   };
@@ -209,6 +256,37 @@ export async function saveStoreToSupabase(store: Store): Promise<void> {
       })),
     );
     throwIfError(error, 'Save enrollments');
+  }
+
+  const lessonRows = (store.lessons || []).map((item) => ({
+    id: item.id,
+    course_id: item.courseId,
+    title: item.title,
+    content: item.content,
+    video_url: item.videoUrl || null,
+    material_url: item.materialUrl || null,
+    sort_order: item.sortOrder,
+  }));
+  if (lessonRows.length) {
+    const saved = await db.from('lessons').upsert(lessonRows, { onConflict: 'id' });
+    if (saved.error && !/does not exist|schema cache|could not find|material_url/i.test(saved.error.message)) {
+      throwIfError(saved.error, 'Save lessons');
+    }
+  }
+  const { error: progressDeleteError } = await db.from('lesson_progress').delete().neq('student_id', -1);
+  if (progressDeleteError && !/does not exist|schema cache|could not find/i.test(progressDeleteError.message)) {
+    throwIfError(progressDeleteError, 'Clear lesson progress');
+  } else if (!progressDeleteError && store.lessonProgress?.length) {
+    const { error } = await db.from('lesson_progress').insert(
+      store.lessonProgress.map((item) => ({
+        student_id: item.studentId,
+        lesson_id: item.lessonId,
+        completed_at: item.completedAt,
+      })),
+    );
+    if (error && !/does not exist|schema cache|could not find/i.test(error.message)) {
+      throwIfError(error, 'Save lesson progress');
+    }
   }
 
   const { error: bankDeleteError } = await db.from('bank_accounts').delete().neq('id', -1);

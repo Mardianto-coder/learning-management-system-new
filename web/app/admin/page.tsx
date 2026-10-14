@@ -8,12 +8,11 @@ import FilePreview from '@/components/FilePreview';
 import PaymentHistoryLine from '@/components/PaymentHistoryLine';
 import {
   createCourse,
+  createLesson,
   deleteCourse,
-  getAllAssignments,
-  getAllCourses,
-  getOrders,
-  getPaymentInfo,
-  getStudents,
+  deleteLesson,
+  getAdminSummary,
+  getCourseLessons,
   gradeAssignment,
   reviewOrder,
   savePaymentInfo,
@@ -23,12 +22,13 @@ import {
 import { formatRupiah } from '@/lib/format';
 import { SEMESTER_OPTIONS, YEAR_OPTIONS, type StudentProfile } from '@/lib/student-profile';
 import { useAppSelector } from '@/store/hooks';
-import type { Assignment, BankAccount, Course, CourseCategory, Order, PaymentSettings } from '@/lib/types';
+import type { Assignment, BankAccount, Course, CourseCategory, LessonView, Order, PaymentSettings } from '@/lib/types';
 
-type Panel = 'courses' | 'grading' | 'banks' | 'orders' | 'students';
+type Panel = 'courses' | 'lessons' | 'grading' | 'banks' | 'orders' | 'students';
 
 const MENU: { id: Panel; label: string; hint: string }[] = [
   { id: 'courses', label: 'Kelola kelas', hint: 'Tambah, ubah, atau hapus kelas' },
+  { id: 'lessons', label: 'Materi kelas', hint: 'Isi pertemuan yang dibuka siswa aktif' },
   { id: 'grading', label: 'Nilai tugas', hint: 'Tugas siswa yang perlu dinilai' },
   { id: 'banks', label: 'Rekening tujuan', hint: 'Nomor rekening untuk transfer siswa' },
   { id: 'orders', label: 'Aktivasi bayar', hint: 'Aktifkan kelas setelah bukti transfer' },
@@ -48,6 +48,8 @@ export default function AdminPage() {
   const [grading, setGrading] = useState<Assignment | null>(null);
   const [panel, setPanel] = useState<Panel>('courses');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [lessonCourseId, setLessonCourseId] = useState<number | ''>('');
+  const [lessons, setLessons] = useState<LessonView[]>([]);
   const [students, setStudents] = useState<{ id: number; name: string; email: string; profile: StudentProfile }[]>([]);
   const [studentId, setStudentId] = useState<number | ''>('');
   const [academic, setAcademic] = useState<StudentProfile | null>(null);
@@ -55,18 +57,12 @@ export default function AdminPage() {
   const [academicOk, setAcademicOk] = useState('');
 
   async function reload() {
-    const [c, a, o, p, s] = await Promise.all([
-      getAllCourses(),
-      getAllAssignments(),
-      getOrders(),
-      getPaymentInfo(),
-      getStudents(),
-    ]);
-    setCourses(c);
-    setAssignments(a);
-    setOrders(o);
-    setPayment(p);
-    setStudents(s);
+    const data = await getAdminSummary();
+    setCourses(data.courses);
+    setAssignments(data.assignments);
+    setOrders(data.orders);
+    setPayment(data.payment);
+    setStudents(data.students);
   }
 
   useEffect(() => {
@@ -216,6 +212,117 @@ export default function AdminPage() {
                 />
               ))}
             </div>
+          </section>
+        ) : null}
+
+        {panel === 'lessons' ? (
+          <section className="dash-panel">
+            <p className="dash-muted">Siswa hanya membaca isi materi setelah enroll (gratis) atau pembayaran diaktifkan.</p>
+            <div className="form-group">
+              <label>Pilih kelas</label>
+              <select
+                value={lessonCourseId}
+                onChange={async (e) => {
+                  const id = e.target.value ? Number(e.target.value) : '';
+                  setLessonCourseId(id);
+                  if (!id) {
+                    setLessons([]);
+                    return;
+                  }
+                  try {
+                    const data = await getCourseLessons(Number(id));
+                    setLessons(data.lessons);
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Gagal memuat materi');
+                  }
+                }}
+              >
+                <option value="">-Pilih kelas-</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {lessonCourseId ? (
+              <>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget;
+                    const data = new FormData(form);
+                    try {
+                      setError('');
+                      await createLesson(Number(lessonCourseId), {
+                        title: String(data.get('title')),
+                        content: String(data.get('content')),
+                        videoUrl: String(data.get('videoUrl') || ''),
+                        materialUrl: String(data.get('materialUrl') || ''),
+                      });
+                      form.reset();
+                      const next = await getCourseLessons(Number(lessonCourseId));
+                      setLessons(next.lessons);
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : 'Gagal menambah materi');
+                    }
+                  }}
+                >
+                  <div className="form-group">
+                    <label>Judul pertemuan</label>
+                    <input name="title" required placeholder="Pertemuan 1 — ..." />
+                  </div>
+                  <div className="form-group">
+                    <label>Isi materi</label>
+                    <textarea name="content" rows={4} placeholder="Ringkasan atau petunjuk belajar (opsional jika sudah ada tautan)" />
+                  </div>
+                  <div className="form-group">
+                    <label>Tautan video (opsional)</label>
+                    <input name="videoUrl" type="url" placeholder="https://youtube.com/..." />
+                  </div>
+                  <div className="form-group">
+                    <label>Tautan materi (opsional)</label>
+                    <input name="materialUrl" type="url" placeholder="https://docs.google.com/... atau PDF/slide" />
+                  </div>
+                  <button type="submit" className="btn btn-primary">
+                    Tambah materi
+                  </button>
+                </form>
+                {lessons.length === 0 ? <p className="dash-empty">Belum ada materi di kelas ini.</p> : null}
+                <div className="tasks-list" style={{ marginTop: '1rem' }}>
+                  {lessons.map((item) => (
+                    <article className="task-item" key={item.id}>
+                      <h4>{item.title}</h4>
+                      <p>{item.content}</p>
+                      <p className="materi-links">
+                        {item.videoUrl ? (
+                          <a href={item.videoUrl} target="_blank" rel="noreferrer">
+                            Video
+                          </a>
+                        ) : null}
+                        {item.materialUrl ? (
+                          <a href={item.materialUrl} target="_blank" rel="noreferrer">
+                            Materi
+                          </a>
+                        ) : null}
+                      </p>
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        onClick={async () => {
+                          if (!confirm('Hapus materi ini?')) return;
+                          await deleteLesson(item.id);
+                          const next = await getCourseLessons(Number(lessonCourseId));
+                          setLessons(next.lessons);
+                        }}
+                      >
+                        Hapus
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              </>
+            ) : null}
           </section>
         ) : null}
 
